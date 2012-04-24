@@ -11,4 +11,5 @@ func main() {
   b.Write([]byte("hello"))
 
   fmt.Println(b.FileName())
+  fmt.Println(len(b.FileName()))
 }
