@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-  b := blob.New()
+  b := blob.New("sha256")
   b.Write([]byte("hello monkey man"))
 
   db := blobdb.New(".")
@@ -16,9 +16,14 @@ func main() {
   err := db.Put(b)
   if err != nil {
     fmt.Println(err)
+    return
   }
 
   b2, err := db.Get(blobdb.FileName(b))
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
 
   fmt.Println(b)
   fmt.Println(b2)

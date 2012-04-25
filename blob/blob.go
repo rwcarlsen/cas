@@ -48,5 +48,5 @@ func (b *Blob) HashName() string {
 }
 
 func (b *Blob) String() string {
-  return b.hashName + ":\n" +  string(b.content)
+  return b.hashName + ": " + b.Sum() +  "\n" +  string(b.content)
 }
