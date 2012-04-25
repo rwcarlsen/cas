@@ -3,8 +3,8 @@ package main
 
 import (
   "fmt"
-  "cas/blob"
-  "cas/blobdb"
+  "github.com/rwcarlsen/blob"
+  "github.com/rwcarlsen/blobdb"
 )
 
 func main() {
