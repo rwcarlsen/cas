@@ -2,7 +2,7 @@
 package blobdb
 
 import (
-  "github.com/rwcarlsen/blob"
+  "github.com/rwcarlsen/cas/blob"
   "path"
   "io/ioutil"
   "errors"
