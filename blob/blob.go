@@ -1,5 +1,5 @@
 
-package Blob
+package blob
 
 import (
   "crypto/sha256"
