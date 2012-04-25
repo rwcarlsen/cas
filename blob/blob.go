@@ -1,5 +1,5 @@
 
-package blob
+package Blob
 
 import (
   "crypto/sha256"
@@ -7,19 +7,19 @@ import (
   "encoding/hex"
 )
 
-type blob struct {
+type Blob struct {
   hashFunc hash.Hash
   hashName string
   content []byte
 }
 
-func New() *blob {
+func New() *Blob {
   h := sha256.New()
   name := "sha256"
-  return &blob{hashFunc:h, hashName: name}
+  return &Blob{hashFunc:h, hashName: name}
 }
 
-func (b *blob) Write(data []byte) (n int, err error) {
+func (b *Blob) Write(data []byte) (n int, err error) {
   n = len(data)
   err = nil
 
@@ -29,16 +29,16 @@ func (b *blob) Write(data []byte) (n int, err error) {
   return
 }
 
-func (b *blob) Sum() []byte {
+func (b *Blob) Sum() []byte {
   sum := b.hashFunc.Sum([]byte{})
   return sum
 }
 
-func (b *blob) FileName() string {
+func (b *Blob) FileName() string {
   return b.hashName + "-" + hex.EncodeToString(b.Sum())
 }
 
-func (b *blob) Content() []byte {
+func (b *Blob) Content() []byte {
   return b.content
 }
 
