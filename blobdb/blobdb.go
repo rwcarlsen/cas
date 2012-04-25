@@ -9,7 +9,6 @@ import (
   "strings"
   "os"
   "encoding/hex"
-  "fmt"
 )
 
 type dbase struct {
@@ -98,7 +97,6 @@ func (db *dbase) Put(b *blob.Blob) (err error) {
 func verifyBlob(sum string, b *blob.Blob) (err error) {
   err = nil
   if hex.EncodeToString(b.Sum()) != sum {
-    fmt.Println(b)
     err = errors.New("blobdb: blob name does not match hash of its content.")
   }
   return
