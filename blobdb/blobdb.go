@@ -60,12 +60,7 @@ func (db *dbase) Get(id string) (b *blob.Blob, err error) {
   }
 
   b.Write(data)
-
   err = verifyBlob(sum, b)
-  if err != nil {
-    return
-  }
-
   return
 }
 
