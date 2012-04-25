@@ -4,6 +4,7 @@ package blob
 import (
   "crypto/sha256"
   "hash"
+  "encoding/hex"
 )
 
 type Blob struct {
@@ -48,5 +49,5 @@ func (b *Blob) HashName() string {
 }
 
 func (b *Blob) String() string {
-  return b.hashName + ": " + b.Sum() +  "\n" +  string(b.content)
+  return b.hashName + ": " + hex.EncodeToString(b.Sum()) +  "\n" +  string(b.content)
 }
