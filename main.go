@@ -3,13 +3,23 @@ package main
 
 import (
   "fmt"
-  "./blob"
+  "cas/blob"
+  "cas/blobdb"
 )
 
 func main() {
   b := blob.New()
-  b.Write([]byte("hello"))
+  b.Write([]byte("hello monkey man"))
 
-  fmt.Println(b.FileName())
-  fmt.Println(len(b.FileName()))
+  db := blobdb.New(".")
+
+  err := db.Put(b)
+  if err != nil {
+    fmt.Println(err)
+  }
+
+  b2, err := db.Get(blobdb.FileName(b))
+
+  fmt.Println(b)
+  fmt.Println(b2)
 }
