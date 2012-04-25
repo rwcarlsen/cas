@@ -7,6 +7,10 @@ import (
   "encoding/hex"
 )
 
+const (
+  NameHashSep = "-"
+)
+
 type Blob struct {
   hashFunc hash.Hash
   hashName string
@@ -44,10 +48,14 @@ func (b *Blob) Content() []byte {
   return b.content
 }
 
+func (b *Blob) Ref() string {
+  return b.HashName() + NameHashSep + hex.EncodeToString(b.Sum())
+}
+
 func (b *Blob) HashName() string {
   return b.hashName
 }
 
 func (b *Blob) String() string {
-  return b.hashName + ": " + hex.EncodeToString(b.Sum()) +  "\n" +  string(b.content)
+  return b.Ref() + ":\n" +  string(b.content)
 }

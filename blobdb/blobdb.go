@@ -15,10 +15,6 @@ type dbase struct {
   location string
 }
 
-const (
-  nameHashSep = "-"
-)
-
 func New(loc string) *dbase {
   return &dbase{location: loc}
 }
@@ -26,7 +22,7 @@ func New(loc string) *dbase {
 func blobNameParts(id string) (hashName, sum string, err error) {
   err = nil
 
-  parts := strings.Split(id, nameHashSep)
+  parts := strings.Split(id, blob.NameHashSep)
   if len(parts) != 2 {
     err = errors.New("blobdb: Invalid blob id " + id)
     return
@@ -66,7 +62,7 @@ func (db *dbase) Get(id string) (b *blob.Blob, err error) {
 
 func (db *dbase) Put(b *blob.Blob) (err error) {
   err = nil
-  id := FileName(b)
+  id := b.Ref()
   p := path.Join(db.location, id)
 
   _, err = os.Stat(p)
@@ -95,9 +91,5 @@ func verifyBlob(sum string, b *blob.Blob) (err error) {
     err = errors.New("blobdb: blob name does not match hash of its content.")
   }
   return
-}
-
-func FileName(b *blob.Blob) string {
-  return b.HashName() + nameHashSep + hex.EncodeToString(b.Sum())
 }
 
