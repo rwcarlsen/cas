@@ -19,7 +19,7 @@ func main() {
     return
   }
 
-  b2, err := db.Get(blobdb.FileName(b))
+  b2, err := db.Get(b.Ref())
   if err != nil {
     fmt.Println(err)
     return
