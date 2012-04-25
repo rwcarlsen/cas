@@ -48,11 +48,6 @@ func (db *dbase) Get(id string) (b *blob.Blob, err error) {
 
   b = blob.New(hashName)
 
-  err = verifyBlob(sum, b)
-  if err != nil {
-    return
-  }
-
   p := path.Join(db.location, id)
   f, err := os.Open(p)
   if err != nil {
@@ -66,6 +61,11 @@ func (db *dbase) Get(id string) (b *blob.Blob, err error) {
   }
 
   b.Write(data)
+
+  err = verifyBlob(sum, b)
+  if err != nil {
+    return
+  }
 
   return
 }
