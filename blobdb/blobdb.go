@@ -7,6 +7,8 @@ import (
   "io/ioutil"
   "errors"
   "strings"
+  "os"
+  "encoding/hex"
 )
 
 type dbase struct {
@@ -69,7 +71,7 @@ func (db *dbase) Get(id string) (b *blob.Blob, err error) {
 
 func (db *dbase) Put(b *blob.Blob) (err error) {
   err = nil
-  id := fileName(b)
+  id := FileName(b)
   p := path.Join(db.location, id)
 
   _, err = os.Stat(p)
@@ -93,9 +95,8 @@ func (db *dbase) Put(b *blob.Blob) (err error) {
 }
 
 func verifyBlob(sum string, b *blob.Blob) (err error) {
-  actual := b.Sum()
   err = nil
-  if b.Sum() != sum {
+  if hex.EncodeToString(b.Sum()) != sum {
     err = errors.New("blobdb: blob name does not match hash of its content.")
   }
   return
