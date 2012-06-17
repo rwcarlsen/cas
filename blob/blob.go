@@ -3,59 +3,53 @@ package blob
 
 import (
   "crypto/sha256"
-  "hash"
+  "crypto"
   "encoding/hex"
 )
 
 const (
   NameHashSep = "-"
+  DefaultHash = crypto.SHA512
 )
 
-type Blob struct {
-  hashFunc hash.Hash
-  hashName string
-  content []byte
-}
-
-func New(hashName string) *Blob {
-  var h hash.Hash
-
-  switch hashName {
-    case "sha256":
-      h = sha256.New()
-    default:
-      return nil
+var (
+  hash2Name = map[crypto.Hash]string {
+    crypto.SHA512: "sha512",
   }
-  return &Blob{hashFunc: h, hashName: hashName}
+
+  name2Hash := make(map[string]crypto.Hash)
+  for h, n := range hash2Name {
+    name2Hash[n] = h
+  }
+)
+
+func HashToName(h crypto.Hash) string {
+  return hash2Name[h]
 }
 
-func (b *Blob) Write(data []byte) (n int, err error) {
-  n = len(data)
-  err = nil
+func NameToHash(n string) crypto.Hash {
+  return name2Hash[n]
+}
 
-  b.content = append(b.content, data...)
-  b.hashFunc.Write(data)
+type Blob struct {
+  Hash crypto.Hash
+  Content []byte
+}
 
-  return
+func New(content []byte) *Blob {
+  return &Blob{hash: DefaultHash, Content: content}
 }
 
 func (b *Blob) Sum() []byte {
-  sum := b.hashFunc.Sum([]byte{})
-  return sum
-}
-
-func (b *Blob) Content() []byte {
-  return b.content
+  hsh := b.h.New()
+  hsh.Write(b.content)
+  return b.hashFunc.Sum([]byte{})
 }
 
 func (b *Blob) Ref() string {
-  return b.HashName() + NameHashSep + hex.EncodeToString(b.Sum())
-}
-
-func (b *Blob) HashName() string {
-  return b.hashName
+  return hashName[b.Hash] + NameHashSep + hex.EncodeToString(b.Sum())
 }
 
 func (b *Blob) String() string {
-  return b.Ref() + ":\n" +  string(b.content)
+  return b.Ref() + ":\n" +  string(b.Content)
 }

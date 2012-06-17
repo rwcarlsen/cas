@@ -19,31 +19,23 @@ func New(loc string) *dbase {
   return &dbase{location: loc}
 }
 
-func blobNameParts(id string) (hashName, sum string, err error) {
-  err = nil
-
-  parts := strings.Split(id, blob.NameHashSep)
+func blobRefParts(ref string) (hash crypto.Hash, sum string) {
+  parts := strings.Split(ref, blob.NameHashSep)
   if len(parts) != 2 {
-    err = errors.New("blobdb: Invalid blob id " + id)
-    return
+    panic("blobdb: Invalref blob ref " + ref)
   }
 
-  hashName = parts[0]
-  sum = parts[1]
-  return
+  return blob.NameToHash(parts[0]), parts[1]
 }
 
-func (db *dbase) Get(id string) (b *blob.Blob, err error) {
-  err = nil
-
-  hashName, sum, err := blobNameParts(id)
-  if err != nil {
-    return
+func (db *dbase) Get(ref string) (b *blob.Blob, err error) {
+  defer func() {
+    if r := recover(); r != nil {
+      err = errors.New(r)
+    }
   }
 
-  b = blob.New(hashName)
-
-  p := path.Join(db.location, id)
+  p := path.Join(db.location, ref)
   f, err := os.Open(p)
   if err != nil {
     return
@@ -55,15 +47,17 @@ func (db *dbase) Get(id string) (b *blob.Blob, err error) {
     return
   }
 
-  b.Write(data)
+  hash, sum := blobRefParts(ref)
+  b = blob.New(data)
+  b.Hash = hash
+
   err = verifyBlob(sum, b)
   return
 }
 
 func (db *dbase) Put(b *blob.Blob) (err error) {
-  err = nil
-  id := b.Ref()
-  p := path.Join(db.location, id)
+  ref := b.Ref()
+  p := path.Join(db.location, ref)
 
   _, err = os.Stat(p)
   if os.IsExist(err) {
@@ -77,16 +71,12 @@ func (db *dbase) Put(b *blob.Blob) (err error) {
   }
   defer f.Close()
 
-  _, err = f.Write(b.Content())
-  if err != nil {
-    return
-  }
+  _, err = f.Write(b.Content)
 
   return
 }
 
 func verifyBlob(sum string, b *blob.Blob) (err error) {
-  err = nil
   if hex.EncodeToString(b.Sum()) != sum {
     err = errors.New("blobdb: blob name does not match hash of its content.")
   }
