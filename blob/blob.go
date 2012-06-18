@@ -3,6 +3,7 @@ package blob
 
 import (
   "crypto"
+  "crypto/sha512"
   "encoding/hex"
 )
 
@@ -12,14 +13,12 @@ const (
 )
 
 var (
-  hash2Name = map[crypto.Hash]string {
-    crypto.SHA512: "sha512",
-  }
-
+  hash2Name = map[crypto.Hash]string {crypto.SHA512: "sha512"}
   name2Hash = map[string]crypto.Hash { }
 )
 
 func init() {
+  crypto.RegisterHash(crypto.SHA512, sha512.New)
   for h, n := range hash2Name {
     name2Hash[n] = h
   }
