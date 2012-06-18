@@ -6,6 +6,7 @@ import (
   "crypto/sha256"
   "crypto/sha512"
   "encoding/hex"
+  "encoding/json"
 )
 
 const (
@@ -14,14 +15,13 @@ const (
 )
 
 var (
-  hash2Name = map[crypto.Hash]string {
-    crypto.SHA256: "sha256",
-    crypto.SHA512: "sha512",
-    }
+  hash2Name = map[crypto.Hash]string { }
   name2Hash = map[string]crypto.Hash { }
 )
 
 func init() {
+  hash2Name[crypto.SHA256] = "sha256"
+  hash2Name[crypto.SHA512] = "sha512"
   crypto.RegisterHash(crypto.SHA256, sha256.New)
   crypto.RegisterHash(crypto.SHA512, sha512.New)
   for h, n := range hash2Name {
@@ -42,7 +42,7 @@ type Blob struct {
   Content []byte
 }
 
-func New(content []byte) *Blob {
+func Raw(content []byte) *Blob {
   return &Blob{Hash: DefaultHash, Content: content}
 }
 
@@ -59,3 +59,16 @@ func (b *Blob) Ref() string {
 func (b *Blob) String() string {
   return b.Ref() + ":\n" +  string(b.Content)
 }
+
+type MetaData map[string] interface{}
+
+func Pointer(ref string, meta MetaData) (b *Blob, err error) {
+  m := MetaData(meta)
+  m["pointsTo"] = ref
+  data, err := json.Marshal(m)
+  if err != nil {
+    return nil, err
+  }
+  return Raw(data), nil
+}
+
