@@ -39,15 +39,19 @@ func testPointer() {
   db := blobdb.New(".")
 
   b := blob.Raw([]byte("hello monkey man"))
-  p := blob.Pointer(b.Ref(), MetaData{"creator":"me", "favorite-cheese": "swiss", "count":4})
-
-  err := db.Put(b)
+  p, err := blob.Pointer(b.Ref(), blob.MetaData{"creator":"me", "favorite-cheese": "swiss", "count":4})
   if err != nil {
     fmt.Println(err)
     return
   }
 
-  err := db.Put(p)
+  err = db.Put(b)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  err = db.Put(p)
   if err != nil {
     fmt.Println(err)
     return
@@ -59,6 +63,6 @@ func testPointer() {
     return
   }
 
-  fmt.Println(p)
   fmt.Println(p2)
+  fmt.Println(b)
 }
