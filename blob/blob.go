@@ -2,7 +2,6 @@
 package blob
 
 import (
-  "crypto/sha256"
   "crypto"
   "encoding/hex"
 )
@@ -17,11 +16,14 @@ var (
     crypto.SHA512: "sha512",
   }
 
-  name2Hash := make(map[string]crypto.Hash)
+  name2Hash = map[string]crypto.Hash { }
+)
+
+func init() {
   for h, n := range hash2Name {
     name2Hash[n] = h
   }
-)
+}
 
 func HashToName(h crypto.Hash) string {
   return hash2Name[h]
@@ -37,17 +39,17 @@ type Blob struct {
 }
 
 func New(content []byte) *Blob {
-  return &Blob{hash: DefaultHash, Content: content}
+  return &Blob{Hash: DefaultHash, Content: content}
 }
 
 func (b *Blob) Sum() []byte {
-  hsh := b.h.New()
-  hsh.Write(b.content)
-  return b.hashFunc.Sum([]byte{})
+  hsh := b.Hash.New()
+  hsh.Write(b.Content)
+  return hsh.Sum([]byte{})
 }
 
 func (b *Blob) Ref() string {
-  return hashName[b.Hash] + NameHashSep + hex.EncodeToString(b.Sum())
+  return HashToName(b.Hash) + NameHashSep + hex.EncodeToString(b.Sum())
 }
 
 func (b *Blob) String() string {

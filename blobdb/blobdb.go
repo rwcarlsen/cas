@@ -9,6 +9,7 @@ import (
   "strings"
   "os"
   "encoding/hex"
+  "crypto"
 )
 
 type dbase struct {
@@ -31,9 +32,9 @@ func blobRefParts(ref string) (hash crypto.Hash, sum string) {
 func (db *dbase) Get(ref string) (b *blob.Blob, err error) {
   defer func() {
     if r := recover(); r != nil {
-      err = errors.New(r)
+      err = r.(error)
     }
-  }
+  }()
 
   p := path.Join(db.location, ref)
   f, err := os.Open(p)

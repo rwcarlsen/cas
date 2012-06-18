@@ -8,9 +8,7 @@ import (
 )
 
 func main() {
-  b := blob.New("sha256")
-  b.Write([]byte("hello monkey man"))
-
+  b := blob.New([]byte("hello monkey man"))
   db := blobdb.New(".")
 
   err := db.Put(b)
