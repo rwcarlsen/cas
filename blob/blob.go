@@ -17,7 +17,7 @@ import (
 const (
   NameHashSep = "-"
   DefaultHash = crypto.SHA256
-  DefaultChunkSize = 1000000
+  DefaultChunkSize = 1048576
 )
 
 var (

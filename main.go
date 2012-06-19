@@ -45,24 +45,11 @@ func testFile() {
     return
   }
 
-  err = db.Put(f)
+  err = db.Put(blobs...)
   if err != nil {
     fmt.Println(err)
     return
   }
 
-  err = db.Put(m)
-  if err != nil {
-    fmt.Println(err)
-    return
-  }
-
-  m2, err := db.Get(m.Ref())
-  if err != nil {
-    fmt.Println(err)
-    return
-  }
-
-  fmt.Println(m2)
-  fmt.Println(f)
+  fmt.Println(blobs...)
 }

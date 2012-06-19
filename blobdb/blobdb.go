@@ -56,14 +56,29 @@ func (db *dbase) Get(ref string) (b *blob.Blob, err error) {
   return
 }
 
-func (db *dbase) Put(b *blob.Blob) (err error) {
-  ref := b.Ref()
-  p := path.Join(db.location, ref)
+func (db *dbase) Put(blobs ...*blob.Blob) (err error) {
+  // separate loop for error checking makes Puts all or nothing
+  for _, b := range blobs {
+    ref := b.Ref()
+    p := path.Join(db.location, ref)
 
-  if _, err = os.Stat(p); err == nil {
-    return errors.New("blobdb: blob " + p + " already exists")
+    if _, err = os.Stat(p); err == nil {
+      return errors.New("blobdb: blob " + p + " already exists")
+    }
   }
 
+  for _, b := range blobs {
+    err = db.writeBlob(b)
+    if err != nil {
+      return
+    }
+  }
+  return
+}
+
+func (db *dbase) writeBlob(b *blob.Blob) (err error) {
+  ref := b.Ref()
+  p := path.Join(db.location, ref)
   f, err := os.Create(p)
   if err != nil {
     return
@@ -71,7 +86,6 @@ func (db *dbase) Put(b *blob.Blob) (err error) {
   defer f.Close()
 
   _, err = f.Write(b.Content)
-
   return
 }
 
