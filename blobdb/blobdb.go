@@ -60,10 +60,8 @@ func (db *dbase) Put(b *blob.Blob) (err error) {
   ref := b.Ref()
   p := path.Join(db.location, ref)
 
-  _, err = os.Stat(p)
-  if err == nil {
-    err = errors.New("blobdb: blob " + p + " already exists")
-    return
+  if _, err = os.Stat(p); err == nil {
+    return errors.New("blobdb: blob " + p + " already exists")
   }
 
   f, err := os.Create(p)
