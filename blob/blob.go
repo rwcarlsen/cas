@@ -3,6 +3,7 @@ package blob
 
 import (
   "crypto"
+  "crypto/rand"
   "crypto/sha256"
   "crypto/sha512"
   "encoding/hex"
@@ -42,26 +43,38 @@ func NameToHash(n string) crypto.Hash {
 
 // standardized way to create key-value based blobs
 type MetaData map[string] interface{}
+func NewMeta(kind, objectRef string) MetaData {
+  m := MetaData{}
+  m["blob-type"] = t
+  m["object-ref"] = ref
+  m["timestamp"] = time.Now().UTC().String()
+  return m
+}
 
 type Blob struct {
   Hash crypto.Hash
   Content []byte
 }
 
-// Raw creates a blob using the DefaultHash holding the passed content.
-func Raw(content []byte) *Blob {
-  return &Blob{Hash: DefaultHash, Content: content}
-}
+func Object() *Blob {
+  m := NewMeta("object", "")
 
-// Pointer returns a json blob that holds a reference to another blob
-func Pointer(ref string, meta MetaData) (b *Blob, err error) {
-  m := MetaData(meta)
-  m["points-to"] = ref
+  r := make([]byte, 100)
+  _, err := rand.Read(r)
+  if err != nil {
+    return nil, err
+  }
+  m["random"] = r
+
   data, err := json.Marshal(m)
   if err != nil {
     return nil, err
   }
-  return Raw(data), nil
+}
+
+// Raw creates a blob using the DefaultHash holding the passed content.
+func Raw(content []byte) *Blob {
+  return &Blob{Hash: DefaultHash, Content: content}
 }
 
 func File(path string) (file, metadata *Blob, err error) {
@@ -80,15 +93,12 @@ func File(path string) (file, metadata *Blob, err error) {
     return nil, nil, err
   }
 
+  meta := NewMetaData("file", ref)
+  meta["name"] = stat.Name()
   abs, _ := filepath.Abs(path)
-
-  meta := MetaData{
-    "blob-type": "file",
-    "name": stat.Name(),
-    "path": abs,
-    "size": stat.Size(),
-    "mod-time": stat.ModTime(),
-  }
+  meta["path"] = abs
+  meta["size"] = stat.Size()
+  meta["mod-time"] = stat.ModTime()
 
   b := Raw(data)
   p, err := Pointer(b.Ref(), meta)
