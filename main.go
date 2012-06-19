@@ -11,7 +11,8 @@ import (
 
 func main() {
   //testRaw()
-  testPointer()
+  //testPointer()
+  testFile()
 }
 
 func testRaw() {
@@ -65,4 +66,35 @@ func testPointer() {
 
   fmt.Println(p2)
   fmt.Println(b)
+}
+
+func testFile() {
+  db := blobdb.New(".")
+
+  f, m, err := blob.File("foo.txt")
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  err = db.Put(f)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  err = db.Put(m)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  m2, err := db.Get(m.Ref())
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  fmt.Println(m2)
+  fmt.Println(f)
 }
