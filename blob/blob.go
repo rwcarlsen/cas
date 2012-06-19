@@ -56,7 +56,7 @@ func Raw(content []byte) *Blob {
 // Pointer returns a json blob that holds a reference to another blob
 func Pointer(ref string, meta MetaData) (b *Blob, err error) {
   m := MetaData(meta)
-  m["pointsTo"] = ref
+  m["points-to"] = ref
   data, err := json.Marshal(m)
   if err != nil {
     return nil, err
@@ -83,6 +83,7 @@ func File(path string) (file, metadata *Blob, err error) {
   abs, _ := filepath.Abs(path)
 
   meta := MetaData{
+    "blob-type": "file",
     "name": stat.Name(),
     "path": abs,
     "size": stat.Size(),
