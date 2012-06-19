@@ -47,7 +47,7 @@ func NewMeta(kind, objectRef string) MetaData {
   m := MetaData{}
   m["blob-type"] = t
   m["object-ref"] = ref
-  m["timestamp"] = time.Now().UTC().String()
+  m["timestamp"] = time.Now().UTC()
   return m
 }
 
@@ -56,7 +56,20 @@ type Blob struct {
   Content []byte
 }
 
-func Object() *Blob {
+// Raw creates a blob using the DefaultHash holding the passed content.
+func FromContent(content []byte) *Blob {
+  return &Blob{Hash: DefaultHash, Content: content}
+}
+
+func FromMeta(m MetaData) (b *Blob, err error) {
+  data, err := json.Marshal(m)
+  if err != nil {
+    return nil, err
+  }
+  return Raw(data), nil
+}
+
+func Object() (b *Blob, err error) {
   m := NewMeta("object", "")
 
   r := make([]byte, 100)
@@ -66,18 +79,10 @@ func Object() *Blob {
   }
   m["random"] = r
 
-  data, err := json.Marshal(m)
-  if err != nil {
-    return nil, err
-  }
+  return FromMeta(m)
 }
 
-// Raw creates a blob using the DefaultHash holding the passed content.
-func Raw(content []byte) *Blob {
-  return &Blob{Hash: DefaultHash, Content: content}
-}
-
-func File(path string) (file, metadata *Blob, err error) {
+func FromFile(path string) (blobs []*Blob, err error) {
   f, err := os.Open(path)
   if err != nil {
     return nil, nil, err
@@ -93,18 +98,20 @@ func File(path string) (file, metadata *Blob, err error) {
     return nil, nil, err
   }
 
-  meta := NewMetaData("file", ref)
+  obj := Object()
+  meta := NewMeta("file", obj.Ref())
   meta["name"] = stat.Name()
   abs, _ := filepath.Abs(path)
   meta["path"] = abs
   meta["size"] = stat.Size()
   meta["mod-time"] = stat.ModTime()
 
-  b := Raw(data)
-  p, err := Pointer(b.Ref(), meta)
+  p, err := FromMeta(meta)
   if err != nil {
     return nil, nil, err
   }
+  b := Raw(data)
+
   return b, p, nil
 }
 
