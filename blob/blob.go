@@ -50,6 +50,10 @@ func NewMeta(kind, objectRef string) MetaData {
   m["timestamp"] = time.Now().UTC()
   return m
 }
+func (m MetaData) AddPayload(payload ...string) {
+  m["payload"] = payload
+}
+
 
 type Blob struct {
   Hash crypto.Hash
@@ -106,11 +110,12 @@ func FromFile(path string) (blobs []*Blob, err error) {
   meta["size"] = stat.Size()
   meta["mod-time"] = stat.ModTime()
 
+  b := Raw(data)
+  meta.AddPayload(b.Ref())
   p, err := FromMeta(meta)
   if err != nil {
     return nil, nil, err
   }
-  b := Raw(data)
 
   return b, p, nil
 }
