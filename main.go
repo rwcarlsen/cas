@@ -39,7 +39,7 @@ func testFromContent() {
 func testFile() {
   db := blobdb.New(".")
 
-  blobs, err := blob.FromFile("foo.txt")
+  blobs, err := blob.FromFile("foo.txt", "no-object-ref")
   if err != nil {
     fmt.Println(err)
     return
@@ -51,5 +51,7 @@ func testFile() {
     return
   }
 
-  fmt.Println(blobs...)
+  for _, b := range blobs {
+    fmt.Println(b)
+  }
 }
