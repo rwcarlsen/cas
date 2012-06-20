@@ -49,7 +49,6 @@ type MetaData map[string] interface{}
 func NewMeta(kind string) MetaData {
   m := MetaData{}
   m["blob-type"] = kind
-  m["timestamp"] = time.Now().UTC()
   return m
 }
 
@@ -57,10 +56,17 @@ func (m MetaData) SetObjectRef(ref string) {
   m["object-ref"] = ref
 }
 
-// SetPayload is used to store one or more blob ref's.
-// Usually refs that, when combined, represent some sort of 'file'
-func (m MetaData) SetPayload(payload ...string) {
-  m["payload"] = payload
+func (m MetaData) AttachRefs(refs ...string) {
+  m["refs"] = refs
+}
+
+func (m MetaData) ToBlob() (b *Blob, err error) {
+  m["timestamp"] = time.Now().UTC()
+  data, err := json.Marshal(m)
+  if err != nil {
+    return nil, err
+  }
+  return Raw(data), nil
 }
 
 type Blob struct {
@@ -68,26 +74,18 @@ type Blob struct {
   Content []byte
 }
 
-// FromContent creates a blob using the DefaultHash holding the passed content.
-func FromContent(content []byte) *Blob {
+// Raw creates a blob using the DefaultHash holding the passed content.
+func Raw(content []byte) *Blob {
   return &Blob{Hash: DefaultHash, Content: content}
 }
 
-func FromSplittingContent(data []byte, blockSize int) []*Blob {
+func SplitRaw(data []byte, blockSize int) []*Blob {
   blobs := make([]*Blob, 0)
   for i := 0; i < len(data); i += blockSize {
     end := min(len(data), i + blockSize)
-    blobs = append(blobs, FromContent(data[i:end]))
+    blobs = append(blobs, Raw(data[i:end]))
   }
   return blobs
-}
-
-func FromMeta(m MetaData) (b *Blob, err error) {
-  data, err := json.Marshal(m)
-  if err != nil {
-    return nil, err
-  }
-  return FromContent(data), nil
 }
 
 func Object() (b *Blob, err error) {
@@ -99,41 +97,12 @@ func Object() (b *Blob, err error) {
   }
   m["random"] = r
 
-  return FromMeta(m)
+  return m.ToBlob()
 }
 
-func FromFile(path, objectRef string) (blobs []*Blob, err error) {
-  f, err := os.Open(path)
-  if err != nil {
-    return nil, err
-  }
-
-  data, err := ioutil.ReadAll(f)
-  if err != nil {
-    return nil, err
-  }
-
-  stat, err := f.Stat()
-  if err != nil {
-    return nil, err
-  }
-
-  meta := NewMeta("file")
-  meta.SetObjectRef(objectRef)
-  meta["name"] = stat.Name()
-  abs, _ := filepath.Abs(path)
-  meta["path"] = abs
-  meta["size"] = stat.Size()
-  meta["mod-time"] = stat.ModTime().UTC()
-
-  chunks := FromSplittingContent(data, DefaultChunkSize)
-  meta.SetPayload(RefsFor(chunks)...)
-  m, err := FromMeta(meta)
-  if err != nil {
-    return nil, err
-  }
-
-  return append(chunks, m), nil
+func (b *Blob) GetMeta() (meta MetaData, err error) {
+  err = json.Unmarshal(b.Content, &meta)
+  return
 }
 
 func (b *Blob) Sum() []byte {
@@ -166,5 +135,63 @@ func min(vals ...int) int {
     }
   }
   return smallest
+}
+
+//////////////////////////////////////////////////////////////
+///////// for creating specific types of blobs////////////////
+//////////////////////////////////////////////////////////////
+
+func NewFileMeta(path string) (meta MetaData, err error) {
+  f, err := os.Open(path)
+  if err != nil {
+    return nil, err
+  }
+
+  abs, _ := filepath.Abs(path)
+  stat, err := f.Stat()
+  if err != nil {
+    return nil, err
+  }
+
+  meta = NewMeta("file")
+  meta["name"] = stat.Name()
+  meta["path"] = abs
+  meta["size"] = stat.Size()
+  meta["mod-time"] = stat.ModTime().UTC()
+
+  return meta, nil
+}
+
+func PlainFileBlobs(path string) (blobs []*Blob, err error) {
+  meta, err := NewFileMeta(path)
+  if err != nil {
+    return nil, err
+  }
+  blobs, err = FileBlobs(path)
+  if err != nil {
+    return nil, err
+  }
+
+  m, err := meta.ToBlob()
+  if err != nil {
+    return nil, err
+  }
+  return append(blobs, m), nil
+}
+
+func FileBlobs(path string) (blobs []*Blob, err error) {
+  f, err := os.Open(path)
+  if err != nil {
+    return nil, err
+  }
+
+  data, err := ioutil.ReadAll(f)
+  if err != nil {
+    return nil, err
+  }
+
+  chunks := SplitRaw(data, DefaultChunkSize)
+
+  return chunks, nil
 }
 
