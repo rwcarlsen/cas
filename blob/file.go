@@ -1,4 +1,3 @@
-
 package blob
 
 import (
@@ -33,10 +32,13 @@ func PlainFileBlobs(path string) (blobs []*Blob, err error) {
   if err != nil {
     return nil, err
   }
+
   blobs, err = FileBlobs(path)
   if err != nil {
     return nil, err
   }
+
+  meta.AttachRefs(RefsFor(blobs)...)
 
   m, err := meta.ToBlob()
   if err != nil {
