@@ -15,8 +15,8 @@ func main() {
   testFile()
 }
 
-func testFromContent() {
-  b := blob.FromContent([]byte("hello monkey man"))
+func testRaw() {
+  b := blob.Raw([]byte("hello monkey man"))
   db := blobdb.New(".")
 
 
@@ -39,7 +39,7 @@ func testFromContent() {
 func testFile() {
   db := blobdb.New(".")
 
-  blobs, err := blob.FromFile("foo.txt", "no-object-ref")
+  blobs, err := blob.PlainFileBlobs("foo.txt")
   if err != nil {
     fmt.Println(err)
     return

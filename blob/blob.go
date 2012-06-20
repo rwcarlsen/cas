@@ -8,16 +8,13 @@ import (
   "crypto/sha512"
   "encoding/hex"
   "encoding/json"
-  "os"
-  "io/ioutil"
-  "path/filepath"
   "time"
 )
 
 const (
   NameHashSep = "-"
   DefaultHash = crypto.SHA256
-  DefaultChunkSize = 1048576
+  DefaultChunkSize = 1048576 // in bytes
 )
 
 var (
@@ -79,6 +76,7 @@ func Raw(content []byte) *Blob {
   return &Blob{Hash: DefaultHash, Content: content}
 }
 
+// SplitRaw creates blobs by splitting data into blockSize (bytes) chunks
 func SplitRaw(data []byte, blockSize int) []*Blob {
   blobs := make([]*Blob, 0)
   for i := 0; i < len(data); i += blockSize {
@@ -88,6 +86,9 @@ func SplitRaw(data []byte, blockSize int) []*Blob {
   return blobs
 }
 
+// Object creates an immutable timestamped blob that can be used to
+// simulate mutable objects that have a dynamic, pruneable revision
+// history.
 func Object() (b *Blob, err error) {
   m := NewMeta("object")
 
@@ -135,63 +136,5 @@ func min(vals ...int) int {
     }
   }
   return smallest
-}
-
-//////////////////////////////////////////////////////////////
-///////// for creating specific types of blobs////////////////
-//////////////////////////////////////////////////////////////
-
-func NewFileMeta(path string) (meta MetaData, err error) {
-  f, err := os.Open(path)
-  if err != nil {
-    return nil, err
-  }
-
-  abs, _ := filepath.Abs(path)
-  stat, err := f.Stat()
-  if err != nil {
-    return nil, err
-  }
-
-  meta = NewMeta("file")
-  meta["name"] = stat.Name()
-  meta["path"] = abs
-  meta["size"] = stat.Size()
-  meta["mod-time"] = stat.ModTime().UTC()
-
-  return meta, nil
-}
-
-func PlainFileBlobs(path string) (blobs []*Blob, err error) {
-  meta, err := NewFileMeta(path)
-  if err != nil {
-    return nil, err
-  }
-  blobs, err = FileBlobs(path)
-  if err != nil {
-    return nil, err
-  }
-
-  m, err := meta.ToBlob()
-  if err != nil {
-    return nil, err
-  }
-  return append(blobs, m), nil
-}
-
-func FileBlobs(path string) (blobs []*Blob, err error) {
-  f, err := os.Open(path)
-  if err != nil {
-    return nil, err
-  }
-
-  data, err := ioutil.ReadAll(f)
-  if err != nil {
-    return nil, err
-  }
-
-  chunks := SplitRaw(data, DefaultChunkSize)
-
-  return chunks, nil
 }
 
