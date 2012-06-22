@@ -16,8 +16,11 @@ type dbase struct {
   location string
 }
 
-func New(loc string) *dbase {
-  return &dbase{location: loc}
+func New(loc string) (db *dbase, err error) {
+  if os.MkdirAll(loc, 666); err != nil {
+    return nil, err
+  }
+  return &dbase{location: loc}, nil
 }
 
 func blobRefParts(ref string) (hash crypto.Hash, sum string) {
@@ -70,10 +73,10 @@ func (db *dbase) Put(blobs ...*blob.Blob) (err error) {
   for _, b := range blobs {
     err = db.writeBlob(b)
     if err != nil {
-      return
+      return err
     }
   }
-  return
+  return err
 }
 
 func (db *dbase) writeBlob(b *blob.Blob) (err error) {
@@ -81,12 +84,12 @@ func (db *dbase) writeBlob(b *blob.Blob) (err error) {
   p := path.Join(db.location, ref)
   f, err := os.Create(p)
   if err != nil {
-    return
+    return err
   }
   defer f.Close()
 
   _, err = f.Write(b.Content)
-  return
+  return err
 }
 
 func verifyBlob(sum string, b *blob.Blob) (err error) {

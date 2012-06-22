@@ -10,15 +10,14 @@ import (
 
 
 func main() {
-  //testFromContent()
-  //testPointer()
-  testFile()
+  //testRaw()
+  //testFile()
+  testDir()
 }
 
 func testRaw() {
   b := blob.Raw([]byte("hello monkey man"))
-  db := blobdb.New(".")
-
+  db, _ := blobdb.New(".")
 
   err := db.Put(b)
   if err != nil {
@@ -37,9 +36,9 @@ func testRaw() {
 }
 
 func testFile() {
-  db := blobdb.New(".")
+  db, _ := blobdb.New(".")
 
-  meta, blobs, err := blob.FileBlobsAndMeta("foo.txt")
+  meta, blobs, err := blob.FileBlobsAndMeta("foodir/foo.txt")
   if err != nil {
     fmt.Println(err)
     return
@@ -64,7 +63,7 @@ func testFile() {
 }
 
 func testDir() {
-  db := blobdb.New(".")
+  db, _ := blobdb.New(".")
 
   metas, blobs, err := blob.DirBlobsAndMeta("foodir")
   if err != nil {
@@ -72,7 +71,7 @@ func testDir() {
     return
   }
 
-  metablobs := make([]MetaData, 0)
+  metablobs := make([]*blob.Blob, 0)
   for _, meta := range metas {
     m, _ := meta.ToBlob()
     metablobs = append(metablobs, m)
@@ -90,6 +89,9 @@ func testDir() {
     return
   }
 
+  for _, b := range metablobs {
+    fmt.Println(b)
+  }
   for _, b := range blobs {
     fmt.Println(b)
   }
