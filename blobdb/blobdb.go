@@ -17,7 +17,7 @@ type dbase struct {
 }
 
 func New(loc string) (db *dbase, err error) {
-  var mode os.FileMode = 0644
+  var mode os.FileMode = 0744
   if os.MkdirAll(loc, mode); err != nil {
     return nil, err
   }
