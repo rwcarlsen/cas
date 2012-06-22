@@ -39,7 +39,46 @@ func testRaw() {
 func testFile() {
   db := blobdb.New(".")
 
-  blobs, err := blob.PlainFileBlobs("foo.txt")
+  meta, blobs, err := blob.FileBlobsAndMeta("foo.txt")
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  err = db.Put(blobs...)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  m, _ := meta.ToBlob()
+  err = db.Put(m)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  for _, b := range blobs {
+    fmt.Println(b)
+  }
+}
+
+func testDir() {
+  db := blobdb.New(".")
+
+  metas, blobs, err := blob.DirBlobsAndMeta("foodir")
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  metablobs := make([]MetaData, 0)
+  for _, meta := range metas {
+    m, _ := meta.ToBlob()
+    metablobs = append(metablobs, m)
+  }
+
+  err = db.Put(metablobs...)
   if err != nil {
     fmt.Println(err)
     return
@@ -55,3 +94,4 @@ func testFile() {
     fmt.Println(b)
   }
 }
+

@@ -27,26 +27,6 @@ func NewFileMeta(path string) (meta MetaData, err error) {
   return meta, nil
 }
 
-func PlainFileBlobs(path string) (blobs []*Blob, err error) {
-  meta, err := NewFileMeta(path)
-  if err != nil {
-    return nil, err
-  }
-
-  blobs, err = FileBlobs(path)
-  if err != nil {
-    return nil, err
-  }
-
-  meta.AttachRefs(RefsFor(blobs)...)
-
-  m, err := meta.ToBlob()
-  if err != nil {
-    return nil, err
-  }
-  return append(blobs, m), nil
-}
-
 func FileBlobs(path string) (blobs []*Blob, err error) {
   f, err := os.Open(path)
   if err != nil {
@@ -61,5 +41,41 @@ func FileBlobs(path string) (blobs []*Blob, err error) {
   chunks := SplitRaw(data, DefaultChunkSize)
 
   return chunks, nil
+}
+
+func FileBlobsAndMeta(path string) (meta MetaData, blobs []*Blob, err error) {
+  meta, err = NewFileMeta(path)
+  if err != nil {
+    return nil, nil, err
+  }
+
+  blobs, err = FileBlobs(path)
+  if err != nil {
+    return nil, nil, err
+  }
+
+  meta.AttachRefs(RefsFor(blobs)...)
+  return
+}
+
+func DirBlobsAndMeta(path string) (metas []MetaData, blobs []*Blob, err error) {
+  blobs = make([]*Blob, 0)
+  metas = make([]MetaData, 0)
+
+  walkFn := func(path string, info os.FileInfo, inerr error) error {
+    if info.IsDir() {
+      return nil
+    }
+    meta, newblobs, err := FileBlobsAndMeta(path)
+    if err != nil {
+      return err
+    }
+    blobs = append(blobs, newblobs...)
+    metas = append(metas, meta)
+    return nil
+  }
+
+  err = filepath.Walk(path, walkFn)
+  return metas, blobs, err
 }
 
