@@ -132,7 +132,7 @@ func min(vals ...int) int {
   smallest := vals[0]
   for _, val := range vals[1:] {
     if val < smallest {
-      val = smallest
+      smallest = val
     }
   }
   return smallest
