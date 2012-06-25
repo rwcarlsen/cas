@@ -2,10 +2,11 @@
 package main
 
 import (
+  "os"
+  "io"
   "io/ioutil"
   "fmt"
   "net/http"
-  //"encoding/json"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
 )
@@ -33,16 +34,29 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, req *http.Request) {
-  file_name := "index.html"
-  file_data, _ := ioutil.ReadFile(file_name)
-  _, _ = w.Write(file_data)
+  f, err := os.Open("index.html")
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+  _, err = io.Copy(w, f)
+  if err != nil {
+    fmt.Println(err)
+  }
 }
 
 func casScriptHandler(w http.ResponseWriter, req *http.Request) {
-  file_name := "cas.js"
-  file_data, _ := ioutil.ReadFile(file_name)
   w.Header().Set("Content-Type", "text/javascript")
-  _, _ = w.Write(file_data)
+
+  f, err := os.Open("cas.js")
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+  _, err = io.Copy(w, f)
+  if err != nil {
+    fmt.Println(err)
+  }
 }
 
 func putHandler(w http.ResponseWriter, req *http.Request) {
