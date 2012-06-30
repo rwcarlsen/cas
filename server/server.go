@@ -21,7 +21,7 @@ var (
 
 func main() {
   http.HandleFunc("/cas", indexHandler)
-  http.HandleFunc("/cas/cas.js", casScriptHandler)
+  http.HandleFunc("/cas/cas.js", jsHandler)
   http.HandleFunc("/cas/get", getHandler)
   http.HandleFunc("/cas/put", putHandler)
 
@@ -45,7 +45,7 @@ func indexHandler(w http.ResponseWriter, req *http.Request) {
   }
 }
 
-func casScriptHandler(w http.ResponseWriter, req *http.Request) {
+func jsHandler(w http.ResponseWriter, req *http.Request) {
   w.Header().Set("Content-Type", "text/javascript")
 
   f, err := os.Open("cas.js")

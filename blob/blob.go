@@ -120,6 +120,16 @@ func (b *Blob) String() string {
   return b.Ref() + ":\n" +  string(b.Content)
 }
 
+// Combine reconstitutes split data into a single byte slice
+func Combine(blobs ...*Blob) []byte {
+  data := make([]byte, 0)
+
+  for _, b := range blobs {
+    data = append(data, b.Content...)
+  }
+  return data
+}
+
 func RefsFor(blobs []*Blob) []string {
   refs := make([]string, len(blobs))
   for i, b := range blobs {

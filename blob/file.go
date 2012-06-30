@@ -6,6 +6,8 @@ import (
   "io/ioutil"
 )
 
+// NewFileMeta creates a map containing meta-data for a file
+// at the specified path.
 func NewFileMeta(path string) (meta MetaData, err error) {
   f, err := os.Open(path)
   if err != nil {
