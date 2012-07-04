@@ -22,8 +22,9 @@ var (
 func main() {
   http.HandleFunc("/cas", indexHandler)
   http.HandleFunc("/cas/cas.js", jsHandler)
-  http.HandleFunc("/cas/get", getHandler)
-  http.HandleFunc("/cas/put", putHandler)
+  http.HandleFunc("/cas/get", get)
+  http.HandleFunc("/cas/put", put)
+  http.HandleFunc("/cas/putfiles/", putfiles)
 
   fmt.Println("Starting http server...")
   err := http.ListenAndServe("0.0.0.0:8888", nil)
@@ -59,7 +60,7 @@ func jsHandler(w http.ResponseWriter, req *http.Request) {
   }
 }
 
-func putHandler(w http.ResponseWriter, req *http.Request) {
+func put(w http.ResponseWriter, req *http.Request) {
   body, err := ioutil.ReadAll(req.Body)
   if err != nil {
     fmt.Println(err)
@@ -78,7 +79,7 @@ func putHandler(w http.ResponseWriter, req *http.Request) {
   w.Write([]byte(b.String()))
 }
 
-func getHandler(w http.ResponseWriter, req *http.Request) {
+func get(w http.ResponseWriter, req *http.Request) {
   ref, err := ioutil.ReadAll(req.Body)
   if err != nil {
     fmt.Println(err)
@@ -93,4 +94,33 @@ func getHandler(w http.ResponseWriter, req *http.Request) {
     return
   }
   w.Write(b.Content)
+}
+
+func putfiles(w http.ResponseWriter, req *http.Request) {
+  fmt.Println(req)
+
+  //f, _ := os.Create("./upload/"+header.Filename)
+  //defer f.Close()
+  //io.Copy(f,fn)
+
+  req.ParseMultipartForm(10000000)
+	mr, err := req.MultipartReader()
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+	part, err := mr.NextPart()
+	for err == nil {
+		if name := part.FormName(); name != "" {
+			if part.FileName() != "" {
+        fmt.Println("filename:", part.FileName())
+				//fileInfos = append(fileInfos, handleUpload(r, part))
+			} else {
+        fmt.Println(r.Form
+				//r.Form[name] = append(r.Form[name], getFormValue(part))
+			}
+		}
+		part, err = mr.NextPart()
+	}
+	return
 }
