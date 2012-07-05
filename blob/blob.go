@@ -17,6 +17,12 @@ const (
   DefaultChunkSize = 1048576 // in bytes
 )
 
+type Kind string
+
+const (
+  FileKind = "file"
+)
+
 var (
   hash2Name = map[crypto.Hash]string { }
   name2Hash = map[string]crypto.Hash { }
@@ -43,7 +49,7 @@ func NameToHash(n string) crypto.Hash {
 // standardized way to create key-value based blobs
 type MetaData map[string] interface{}
 
-func NewMeta(kind string) MetaData {
+func NewMeta(kind Kind) MetaData {
   m := MetaData{}
   m["blob-type"] = kind
   return m

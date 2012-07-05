@@ -20,7 +20,7 @@ func NewFileMeta(path string) (meta MetaData, err error) {
     return nil, err
   }
 
-  meta = NewMeta("file")
+  meta = NewMeta(FileKind)
   meta["name"] = stat.Name()
   meta["path"] = abs
   meta["size"] = stat.Size()
