@@ -103,7 +103,7 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
   //defer f.Close()
   //io.Copy(f,fn)
 
-  req.ParseMultipartForm(10000000)
+  //req.ParseMultipartForm(10000000)
 	mr, err := req.MultipartReader()
   if err != nil {
     fmt.Println(err)
@@ -113,10 +113,12 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
 	for err == nil {
 		if name := part.FormName(); name != "" {
 			if part.FileName() != "" {
+        data, _ := ioutil.ReadAll(part)
         fmt.Println("filename:", part.FileName())
+        fmt.Println(string(data))
 				//fileInfos = append(fileInfos, handleUpload(r, part))
 			} else {
-        fmt.Println(r.Form
+        //fmt.Println(r.Form)
 				//r.Form[name] = append(r.Form[name], getFormValue(part))
 			}
 		}
