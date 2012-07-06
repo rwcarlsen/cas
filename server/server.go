@@ -21,7 +21,9 @@ var (
 
 func main() {
   http.HandleFunc("/cas", indexHandler)
+  http.HandleFunc("/cas/file-upload", uploadHandler)
   http.HandleFunc("/cas/cas.js", jsHandler)
+  http.HandleFunc("/cas/cas.css", cssHandler)
   http.HandleFunc("/cas/get", get)
   http.HandleFunc("/cas/put", put)
   http.HandleFunc("/cas/putfiles/", putfiles)
@@ -63,11 +65,30 @@ func indexHandler(w http.ResponseWriter, req *http.Request) {
   check(err)
 }
 
+func uploadHandler(w http.ResponseWriter, req *http.Request) {
+  defer deferWrite(w)
+
+  f, err := os.Open("fupload/index.html")
+  check(err)
+  _, err = io.Copy(w, f)
+  check(err)
+}
+
 func jsHandler(w http.ResponseWriter, req *http.Request) {
   defer deferWrite(w)
 
   w.Header().Set("Content-Type", "text/javascript")
   f, err := os.Open("cas.js")
+  check(err)
+  _, err = io.Copy(w, f)
+  check(err)
+}
+
+func cssHandler(w http.ResponseWriter, req *http.Request) {
+  defer deferWrite(w)
+
+  w.Header().Set("Content-Type", "text/css")
+  f, err := os.Open("cas.css")
   check(err)
   _, err = io.Copy(w, f)
   check(err)

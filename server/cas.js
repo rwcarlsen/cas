@@ -12,12 +12,11 @@ function getData(eventObj) {
 }
 
 function printResponse(response) {
-  box = $("#responsebox")
+  box = $("#status-box")
   //json = jQuery.parseJSON(response)
   box.text(response)
 }
 
 $("#submitbutton").live('click', submitData)
 $("#getbutton").live('click', getData)
-
 
