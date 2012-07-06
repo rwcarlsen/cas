@@ -9,6 +9,7 @@ import (
   "net/http"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
+  "encoding/json"
 )
 
 const (
@@ -20,10 +21,8 @@ var (
 )
 
 func main() {
-  http.HandleFunc("/cas", indexHandler)
-  http.HandleFunc("/cas/file-upload", uploadHandler)
-  http.HandleFunc("/cas/cas.js", jsHandler)
-  http.HandleFunc("/cas/cas.css", cssHandler)
+  http.HandleFunc("/", staticHandler)
+
   http.HandleFunc("/cas/get", get)
   http.HandleFunc("/cas/put", put)
   http.HandleFunc("/cas/putfiles/", putfiles)
@@ -35,6 +34,35 @@ func main() {
     fmt.Println(err)
     return
   }
+}
+
+func staticHandler(w http.ResponseWriter, r *http.Request) {
+  defer deferWrite(w)
+
+  path := r.URL.Path[1:]
+  fmt.Println(path)
+  if path == "cas" {
+    static("index.html", w)
+  } else if path == "cas/file-upload" {
+    static("fupload/index.html", w)
+  } else {
+    static(path[4:], w)
+  }
+}
+
+func static(path string, w http.ResponseWriter) {
+  f, err := os.Open(path)
+  check(err)
+
+  data := make([]byte, 512)
+  _, err = f.Read(data)
+  check(err)
+  w.Header().Set("Content-Type", http.DetectContentType(data))
+  _, err = f.Seek(0, 0)
+  check(err)
+
+  _, err = io.Copy(w, f)
+  check(err)
 }
 
 func deferPrint() {
@@ -54,44 +82,6 @@ func check(err error) {
   if err != nil {
     panic(err)
   }
-}
-
-func indexHandler(w http.ResponseWriter, req *http.Request) {
-  defer deferWrite(w)
-
-  f, err := os.Open("index.html")
-  check(err)
-  _, err = io.Copy(w, f)
-  check(err)
-}
-
-func uploadHandler(w http.ResponseWriter, req *http.Request) {
-  defer deferWrite(w)
-
-  f, err := os.Open("fupload/index.html")
-  check(err)
-  _, err = io.Copy(w, f)
-  check(err)
-}
-
-func jsHandler(w http.ResponseWriter, req *http.Request) {
-  defer deferWrite(w)
-
-  w.Header().Set("Content-Type", "text/javascript")
-  f, err := os.Open("cas.js")
-  check(err)
-  _, err = io.Copy(w, f)
-  check(err)
-}
-
-func cssHandler(w http.ResponseWriter, req *http.Request) {
-  defer deferWrite(w)
-
-  w.Header().Set("Content-Type", "text/css")
-  f, err := os.Open("cas.css")
-  check(err)
-  _, err = io.Copy(w, f)
-  check(err)
 }
 
 func put(w http.ResponseWriter, req *http.Request) {
@@ -120,10 +110,12 @@ func get(w http.ResponseWriter, req *http.Request) {
 }
 
 func putfiles(w http.ResponseWriter, req *http.Request) {
-  defer deferWrite(w)
+  defer deferPrint()
 
 	mr, err := req.MultipartReader()
   check(err)
+
+  resp := []interface{}{}
 
 	for part, err := mr.NextPart(); err == nil; {
 		if name := part.FormName(); name == "" {
@@ -132,21 +124,35 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
       continue
     }
     fmt.Println("handling file '" + part.FileName() + "'")
-    storeFileBlob(part)
+    resp = append(resp, storeFileBlob(part.FileName(), part))
 		part, err = mr.NextPart()
 	}
-	return
+
+  data, _ := json.Marshal(resp)
+  _, _ = w.Write(data)
 }
 
-func storeFileBlob(r io.Reader) {
+func storeFileBlob(name string, r io.Reader) (uploadResponse map[string]interface{}) {
+  defer func() {
+    uploadResponse["name"] = name
+    if r := recover(); r != nil {
+      uploadResponse["error"] = r.(error).Error()
+    }
+  }()
+
+  uploadResponse = map[string]interface{}{}
+
   data, err := ioutil.ReadAll(r)
   check(err)
+
+  uploadResponse["size"] = len(data)
 
   blobs := blob.SplitRaw(data, blob.DefaultChunkSize)
   refs := blob.RefsFor(blobs)
 
   meta := blob.NewMeta(blob.FileKind)
   meta.AttachRefs(refs...)
+  meta["name"] = name
 
   b, err := meta.ToBlob()
   check(err)
@@ -154,4 +160,6 @@ func storeFileBlob(r io.Reader) {
   check(err)
   err = db.Put(blobs...)
   check(err)
+
+  return
 }
