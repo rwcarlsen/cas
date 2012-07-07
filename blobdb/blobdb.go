@@ -12,6 +12,11 @@ import (
   "crypto"
 )
 
+var (
+  DupContentErr = errors.New("blobdb: blob hash-content combo already exist")
+  HashCollideErr = errors.New("blobdb: blob hash collision")
+)
+
 type dbase struct {
   location string
 }
@@ -62,12 +67,17 @@ func (db *dbase) Get(ref string) (b *blob.Blob, err error) {
 
 func (db *dbase) Put(blobs ...*blob.Blob) (err error) {
   // separate loop for error checking makes Puts all or nothing
+  var dup error = nil
   for _, b := range blobs {
     ref := b.Ref()
     p := path.Join(db.location, ref)
 
-    if _, err = os.Stat(p); err == nil {
-      return errors.New("blobdb: blob " + p + " already exists")
+    if info, err := os.Stat(p); err == nil {
+      if info.Size() == int64(len(b.Content)) {
+        dup = DupContentErr
+      } else {
+        return HashCollideErr
+      }
     }
   }
 
@@ -77,7 +87,7 @@ func (db *dbase) Put(blobs ...*blob.Blob) (err error) {
       return err
     }
   }
-  return err
+  return dup
 }
 
 func (db *dbase) writeBlob(b *blob.Blob) (err error) {

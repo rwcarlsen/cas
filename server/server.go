@@ -133,32 +133,34 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
   _, _ = w.Write(data)
 }
 
-func storeFileBlob(name string, r io.Reader) (uploadResponse map[string]interface{}) {
+func storeFileBlob(part multipart.Part) (meta map[string]interface{}) {
   defer func() {
-    uploadResponse["name"] = name
+    delete(meta, "refs")
     if r := recover(); r != nil {
-      uploadResponse["error"] = r.(error).Error()
+      meta["error"] = r.(error).Error()
     }
   }()
 
-  uploadResponse = map[string]interface{}{}
+  meta := blob.NewMeta(blob.FileKind)
+  meta["name"] = part.FileName()
 
-  data, err := ioutil.ReadAll(r)
+  data, err := ioutil.ReadAll(part)
   check(err)
 
-  uploadResponse["size"] = len(data)
+  meta["size"] = len(data)
 
   blobs := blob.SplitRaw(data, blob.DefaultChunkSize)
   refs := blob.RefsFor(blobs)
-
-  meta := blob.NewMeta(blob.FileKind)
   meta.AttachRefs(refs...)
-  meta["name"] = name
 
-  b, err := meta.ToBlob()
+  m, err := meta.ToBlob()
   check(err)
-  err = db.Put(b)
-  check(err)
+
+  err = db.Put(m)
+  if err != blobdb.DupContentErr {
+    check(err)
+  }
+
   err = db.Put(blobs...)
   check(err)
 
