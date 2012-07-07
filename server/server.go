@@ -40,11 +40,12 @@ func staticHandler(w http.ResponseWriter, r *http.Request) {
   defer deferWrite(w)
 
   path := r.URL.Path[1:]
-  fmt.Println(path)
   if path == "cas" {
     static("index.html", w)
   } else if path == "cas/file-upload" {
     static("fupload/index.html", w)
+  } else if path == "favicon.ico" {
+    static(path, w)
   } else {
     static(path[4:], w)
   }

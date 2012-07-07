@@ -14,7 +14,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>jQuery File Upload Demo</title>
+<title>RWC cas</title>
 <meta name="description" content="File Upload widget with multiple file selection, drag&amp;drop support, progress bar and preview images for jQuery. Supports cross-domain, chunked and resumable file uploads. Works with any server-side platform (Google App Engine, PHP, Python, Ruby on Rails, Java, etc.) that supports standard HTML form file uploads.">
 <meta name="viewport" content="width=device-width">
 <!-- Bootstrap CSS Toolkit styles -->
@@ -32,39 +32,14 @@
 <!-- Shim to make HTML5 elements usable in older Internet Explorer versions -->
 <!--[if lt IE 9]><script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
 </head>
+
 <body>
-<div class="navbar navbar-fixed-top">
-    <div class="navbar-inner">
-        <div class="container">
-            <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </a>
-            <a class="brand" href="https://github.com/blueimp/jQuery-File-Upload">jQuery File Upload</a>
-            <div class="nav-collapse">
-                <ul class="nav">
-                    <li class="active"><a href="#">Demo</a></li>
-                    <li><a href="https://github.com/blueimp/jQuery-File-Upload/downloads">Downloads</a></li>
-                    <li><a href="https://github.com/blueimp/jQuery-File-Upload">Source Code</a></li>
-                    <li><a href="https://github.com/blueimp/jQuery-File-Upload/wiki">Documentation</a></li>
-                    <li><a href="https://github.com/blueimp/jQuery-File-Upload/issues">Issues</a></li>
-                    <li><a href="https://blueimp.net">&copy; Sebastian Tschan</a></li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</div>
+
 <div class="container">
     <div class="page-header">
         <br><br>
-        <h1>jQuery File Upload Demo</h1>
+        <h1>File Uploader</h1>
     </div>
-    <blockquote>
-        <p>File Upload widget with multiple file selection, drag&amp;drop support, progress bars and preview images for jQuery.<br>
-        Supports cross-domain, chunked and resumable file uploads and client-side image resizing.<br>
-        Works with any server-side platform (PHP, Python, Ruby on Rails, Java, Node.js, Go etc.) that supports standard HTML form file uploads.</p>
-    </blockquote>
     <br>
     <!-- The file upload form used as target for the file upload widget -->
     <form id="fileupload" action="/cas/putfiles/" method="POST" enctype="multipart/form-data">
@@ -109,6 +84,7 @@
     </form>
     <br>
 </div>
+
 <!-- modal-gallery is the modal dialog used for the image gallery -->
 <div id="modal-gallery" class="modal modal-gallery hide fade" data-filter=":odd">
     <div class="modal-header">
