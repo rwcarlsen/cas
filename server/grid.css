@@ -1,24 +1,3 @@
-
-body {
-  font-size:100%;
-}
-
-h1 {
-  font-weight:bold;
-  font-size:2.5em;
-  color:green;
-}
-
-label {
-  font-weight:bold;
-  font-size:1em;
-  color:green;
-}
-
-#status-box {
-  background-color:#AAAAAA;
-}
-
 /****** the 1kb grid ******/
 .grid_1 { width:60px; }
 .grid_2 { width:140px; }

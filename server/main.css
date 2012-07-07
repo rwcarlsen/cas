@@ -1,0 +1,21 @@
+
+body {
+  font-size:100%;
+}
+
+h1 {
+  font-weight:bold;
+  font-size:3.5em;
+  color:blue;
+}
+
+label {
+  font-weight:bold;
+  font-size:1em;
+  color:black;
+}
+
+#status-box {
+  background-color:#CCCCCC;
+}
+

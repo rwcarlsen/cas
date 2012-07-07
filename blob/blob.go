@@ -21,6 +21,7 @@ type Kind string
 
 const (
   FileKind = "file"
+  NoteKind = "note"
 )
 
 var (

@@ -10,6 +10,7 @@ import (
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
   "encoding/json"
+  "mime/multipart"
 )
 
 const (
@@ -24,7 +25,7 @@ func main() {
   http.HandleFunc("/", staticHandler)
 
   http.HandleFunc("/cas/get", get)
-  http.HandleFunc("/cas/put", put)
+  http.HandleFunc("/cas/putnote", putnote)
   http.HandleFunc("/cas/putfiles/", putfiles)
 
   fmt.Println("Starting http server...")
@@ -39,75 +40,56 @@ func main() {
 func staticHandler(w http.ResponseWriter, r *http.Request) {
   defer deferWrite(w)
 
-  path := r.URL.Path[1:]
-  if path == "cas" {
+  pth := r.URL.Path[1:]
+  if pth == "cas/" {
     static("index.html", w)
-  } else if path == "cas/file-upload" {
+  } else if pth == "cas/file-upload" {
     static("fupload/index.html", w)
-  } else if path == "favicon.ico" {
-    static(path, w)
+  } else if pth == "cas/note-drop" {
+    static("notedrop/index.html", w)
+  } else if pth == "favicon.ico" {
+    static(pth, w)
   } else {
-    static(path[4:], w)
+    if len(pth) > 4 {
+      static(pth[4:], w)
+    }
   }
 }
 
-func static(path string, w http.ResponseWriter) {
-  f, err := os.Open(path)
+func static(pth string, w http.ResponseWriter) {
+  f, err := os.Open(pth)
   check(err)
 
-  data := make([]byte, 512)
-  _, err = f.Read(data)
-  check(err)
-  w.Header().Set("Content-Type", http.DetectContentType(data))
-  _, err = f.Seek(0, 0)
-  check(err)
+  w.Header().Set("Content-Type", contentType(pth, f))
 
   _, err = io.Copy(w, f)
   check(err)
 }
 
-func deferPrint() {
-  if r := recover(); r != nil {
-    fmt.Println(r)
-  }
-}
-
-func deferWrite(w http.ResponseWriter) {
-  if r := recover(); r != nil {
-    fmt.Println(r)
-    w.Write([]byte(r.(error).Error()))
-  }
-}
-
-func check(err error) {
-  if err != nil {
-    panic(err)
-  }
-}
-
-func put(w http.ResponseWriter, req *http.Request) {
+func putnote(w http.ResponseWriter, req *http.Request) {
   defer deferWrite(w)
 
   body, err := ioutil.ReadAll(req.Body)
   check(err)
 
-  b := blob.Raw(body)
+  var note blob.MetaData
+  err = json.Unmarshal(body, &note)
+  check(err)
+
+  meta := blob.NewMeta(blob.NoteKind)
+  for key, val := range meta {
+    note[key] = val
+  }
+
+  b, err := note.ToBlob()
+  check(err)
   err = db.Put(b)
   check(err)
 
-  w.Write([]byte(b.String()))
-}
-
-func get(w http.ResponseWriter, req *http.Request) {
-  defer deferWrite(w)
-
-  ref, err := ioutil.ReadAll(req.Body)
+  resp, err := json.MarshalIndent(note, "", "    ")
   check(err)
 
-  b, err := db.Get(string(ref))
-  check(err)
-
-  w.Write(b.Content)
+  w.Write(resp)
 }
 
 func putfiles(w http.ResponseWriter, req *http.Request) {
@@ -125,7 +107,7 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
       continue
     }
     fmt.Println("handling file '" + part.FileName() + "'")
-    resp = append(resp, storeFileBlob(part.FileName(), part))
+    resp = append(resp, storeFileBlob(part))
 		part, err = mr.NextPart()
 	}
 
@@ -133,7 +115,7 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
   _, _ = w.Write(data)
 }
 
-func storeFileBlob(part multipart.Part) (meta map[string]interface{}) {
+func storeFileBlob(part *multipart.Part) (meta blob.MetaData) {
   defer func() {
     delete(meta, "refs")
     if r := recover(); r != nil {
@@ -141,7 +123,7 @@ func storeFileBlob(part multipart.Part) (meta map[string]interface{}) {
     }
   }()
 
-  meta := blob.NewMeta(blob.FileKind)
+  meta = blob.NewMeta(blob.FileKind)
   meta["name"] = part.FileName()
 
   data, err := ioutil.ReadAll(part)
@@ -166,3 +148,16 @@ func storeFileBlob(part multipart.Part) (meta map[string]interface{}) {
 
   return
 }
+
+func get(w http.ResponseWriter, req *http.Request) {
+  defer deferWrite(w)
+
+  ref, err := ioutil.ReadAll(req.Body)
+  check(err)
+
+  b, err := db.Get(string(ref))
+  check(err)
+
+  w.Write(b.Content)
+}
+
