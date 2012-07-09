@@ -12,6 +12,7 @@ type Filter struct {
 
   in chan *blob.Blob
   out chan *blob.Blob
+  skip chan *blob.Blob
   done chan bool
 }
 
@@ -30,6 +31,8 @@ func (f *Filter) Dispatch() {
         case b := <-f.in:
           if f.fn(b) {
             f.out <- b
+          } else {
+            f.skip <- b
           }
         case <-f.done:
           return
@@ -41,26 +44,47 @@ func (f *Filter) Dispatch() {
 type Query struct {
   filters []*Filter
   done chan bool
+  roots []chan *blob.Blob
+  skip chan *blob.Blob
 }
 
 func NewQuery() *Query {
   done := make(chan bool)
+  skip := make(chan *blob.Blob)
+  roots := make([]chan *blob.Blob, 0)
   filters := make([]*Filter, 0)
-  return &Query{filters: filters, done: done}
+  return &Query{filters: filters, done: done, skip: skip, roots: roots}
+}
+
+func (q *Query) Open() {
+  for _, f := range q.filters {
+    f.Dispatch()
+  }
+}
+
+func (q *Query) Close() {
+  q.done <- true
+}
+
+func (q *Query) Process(blobs ...*blob.Blob) {
+  for _, b := range blobs {
+    for _, root := range q.roots {
+      root <- b
+    }
+  }
 }
 
 func (q *Query) NewFilter(fn FilterFunc) *Filter {
   ch := make(chan *blob.Blob)
-  f := &Filter{in: ch, fn: fn, done: q.done}
+  f := &Filter{in: ch, fn: fn, done: q.done, skip: q.skip}
   q.filters = append(q.filters, f)
   return f
 }
 
-func (q *Query) Run() {
-  for _, f := range q.filters {
-    f.Dispatch()
-  }
-  // create intelligent way to terminate all filters
-  //q.done <- true
+func (q *Query) NewRootFilter(fn FilterFunc) *Filter {
+  ch := make(chan *blob.Blob)
+  f := &Filter{in: ch, fn: fn, done: q.done, skip: q.skip}
+  q.filters = append(q.filters, f)
+  return f
 }
 
