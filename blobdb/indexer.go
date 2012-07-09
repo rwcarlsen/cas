@@ -12,19 +12,16 @@ type Filter struct {
 
   in chan *blob.Blob
   out chan *blob.Blob
+
   skip chan *blob.Blob
   done chan bool
 }
 
-func (f *Filter) takeFrom(ch chan *blob.Blob) {
-  f.in = ch
-}
-
 func (f *Filter) SendTo(other Filter) {
-  other.takeFrom(f.out)
+  f.out = other.in
 }
 
-func (f *Filter) Dispatch() {
+func (f *Filter) dispatch() {
   go func() {
     for {
       select {
@@ -43,47 +40,63 @@ func (f *Filter) Dispatch() {
 
 type Query struct {
   filters []*Filter
-  done chan bool
+  done []chan bool
   roots []chan *blob.Blob
   skip chan *blob.Blob
+  Skipped []*blob.Blob
+  Results []*blob.Blob
+  result chan *blob.Blob
 }
 
 func NewQuery() *Query {
-  done := make(chan bool)
-  skip := make(chan *blob.Blob)
-  roots := make([]chan *blob.Blob, 0)
-  filters := make([]*Filter, 0)
-  return &Query{filters: filters, done: done, skip: skip, roots: roots}
+  return &Query{
+      filters: make([]*Filter, 0),
+      done: make([]chan bool, 0),
+      roots: make([]chan *blob.Blob, 0),
+      skip: make(chan *blob.Blob),
+      result: make(chan *blob.Blob),
+      Skipped: make([]*blob.Blob, 0),
+      Results: make([]*blob.Blob, 0),
+    }
 }
 
 func (q *Query) Open() {
   for _, f := range q.filters {
-    f.Dispatch()
+    f.dispatch()
   }
+
 }
 
 func (q *Query) Close() {
-  q.done <- true
+  for _, ch := range q.done {
+    ch <- true
+  }
 }
 
 func (q *Query) Process(blobs ...*blob.Blob) {
   for _, b := range blobs {
-    for _, root := range q.roots {
-      root <- b
+    for _, ch := range q.roots {
+      ch <- b
+      select {
+        case res := <-q.result:
+          q.Results = append(q.Results, res)
+        case sk := <-q.skip:
+          q.Skipped = append(q.Skipped, sk)
+      }
     }
   }
 }
 
 func (q *Query) NewFilter(fn FilterFunc) *Filter {
-  ch := make(chan *blob.Blob)
-  f := &Filter{in: ch, fn: fn, done: q.done, skip: q.skip}
-  q.filters = append(q.filters, f)
-  return f
-}
-
-func (q *Query) NewRootFilter(fn FilterFunc) *Filter {
-  ch := make(chan *blob.Blob)
-  f := &Filter{in: ch, fn: fn, done: q.done, skip: q.skip}
+  done := make(chan bool)
+  q.done = append(q.done, done)
+  f := &Filter{
+      in: make(chan *blob.Blob),
+      fn: fn,
+      out: q.result,
+      done: done,
+      skip: q.skip,
+    }
   q.filters = append(q.filters, f)
   return f
 }
