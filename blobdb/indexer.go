@@ -5,82 +5,62 @@ import (
   "github.com/rwcarlsen/cas/blob"
 )
 
-type Filter interface {
-  Dispatch()
-  KillVia(ch chan bool)
-  ReceiveVia(ch chan *blob.Blob)
-  SendVia(ch chan *blob.Blob)
-}
+type FilterFunc func(*blob.Blob) bool
 
-filterFunc
+type Filter struct {
+  fn FilterFunc
 
-type Query struct {
-  filters []Filter
-}
-
-func (q *Query) addFilter(f Filter) {
-  q.filters = append(q.filters, f)
-}
-
-type Result struct {
   in chan *blob.Blob
+  out chan *blob.Blob
   done chan bool
-  Blobs []*blob.Blob
 }
 
-func NewResult() {
-  return Result{}
+func (f *Filter) takeFrom(ch chan *blob.Blob) {
+  f.in = ch
 }
 
-func (r *Result) ReceiveVia(ch chan *blob.Blob) {
-  r.in = ch
+func (f *Filter) SendTo(other Filter) {
+  other.takeFrom(f.out)
 }
 
-func (r *Result) SendVia(ch chan *blob.Blob) { }
-
-func (r *Result) KillVia(ch chan bool) {
-  r.done = ch
-}
-
-func (r *Result) Dispatch() {
+func (f *Filter) Dispatch() {
   go func() {
     for {
       select {
-        case b := <-r.in:
-          r.Blobs = append(r.Blobs, b)
-        case <-r.done:
-          break
+        case b := <-f.in:
+          if f.fn(b) {
+            f.out <- b
+          }
+        case <-f.done:
+          return
       }
     }
   }()
 }
 
-func Pipe(from, to Filter) {
+type Query struct {
+  filters []*Filter
+  done chan bool
+}
+
+func NewQuery() *Query {
+  done := make(chan bool)
+  filters := make([]*Filter, 0)
+  return &Query{filters: filters, done: done}
+}
+
+func (q *Query) NewFilter(fn FilterFunc) *Filter {
   ch := make(chan *blob.Blob)
-  from.SendVia(ch)
-  to.ReceiveVia(ch)
+  f := &Filter{in: ch, fn: fn, done: q.done}
+  q.filters = append(q.filters, f)
+  return f
 }
 
-// filter implementations
-type metaFilter struct {
-  Field string
-  Contains string
-
-  in chan *blob.Blob
-  out chan *blob.Blob
+func (q *Query) Run() {
+  for _, f := range q.filters {
+    f.Dispatch()
+  }
+  // create intelligent way to terminate all filters
+  //q.done <- true
 }
-
-func NewMetaFilter(q *Query) {
-
-}
-
-func (f *metaFilter) ReceiveVia(ch chan *blob.Blob) {
-  f.in = ch
-}
-
-func (f *metaFilter) SendVia(ch chan *blob.Blob) {
-  f.out = ch
-}
-
-func (
 
