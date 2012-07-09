@@ -12,7 +12,8 @@ import (
 func main() {
   //testRaw()
   //testFile()
-  testDir()
+  //testDir()
+  testIndexer()
 }
 
 func testRaw() {
@@ -95,5 +96,21 @@ func testDir() {
   for _, b := range blobs {
     fmt.Println(b)
   }
+}
+
+func testIndexer() {
+  b1 := blob.Raw([]byte("I am not json"))
+  b2 := blob.Raw([]byte("{\"key\":\"I am json\"}"))
+
+  q := blobdb.NewQuery()
+  f := q.NewFilter(blobdb.IsJson)
+  q.SetRoots(f)
+
+  q.Open()
+  q.Process(b1, b2)
+  q.Close()
+
+  fmt.Println("results: ", q.Results)
+  fmt.Println("skipped: ", q.Skipped)
 }
 

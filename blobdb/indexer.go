@@ -3,6 +3,7 @@ package blobdb
 
 import (
   "github.com/rwcarlsen/cas/blob"
+  "encoding/json"
 )
 
 type FilterFunc func(*blob.Blob) bool
@@ -73,6 +74,12 @@ func (q *Query) Close() {
   }
 }
 
+func (q *Query) SetRoots(roots ...*Filter) {
+  for _, f := range roots {
+    q.roots = append(q.roots, f.in)
+  }
+}
+
 func (q *Query) Process(blobs ...*blob.Blob) {
   for _, b := range blobs {
     for _, ch := range q.roots {
@@ -99,5 +106,13 @@ func (q *Query) NewFilter(fn FilterFunc) *Filter {
     }
   q.filters = append(q.filters, f)
   return f
+}
+
+// helpful filter funcs
+func IsJson(b *blob.Blob) bool {
+  if err := json.Unmarshal(b.Content, &blob.MetaData{}); err != nil {
+    return false
+  }
+  return true
 }
 
