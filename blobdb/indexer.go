@@ -111,6 +111,8 @@ func (q *Query) Process(blobs ...*blob.Blob) {
 }
 
 // NewFilter creates a new filter attached to this query.
+// By default, the filter sends pass through blobs to the query's collection
+// point for results.
 func (q *Query) NewFilter(fn FilterFunc) *Filter {
   done := make(chan bool)
   q.done = append(q.done, done)
