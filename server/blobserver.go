@@ -114,13 +114,11 @@ func share(w http.ResponseWriter, req *http.Request) {
     }
   }()
 
-  ref, err := ioutil.ReadAll(req.Body)
+  ref := req.FormValue("ref")
+  b, err := db.Get(ref)
   check(err)
-
-  b, err := db.Get(string(ref))
-  check(err)
-  m, err := b.ToMeta()
-  check(err)
+  //m, err := b.ToMeta()
+  //check(err)
 
   //kind, ok := m[blob.KindField]
   //if !ok {
