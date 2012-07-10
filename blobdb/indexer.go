@@ -1,6 +1,5 @@
 
-package blobdb
-
+package blobdb 
 import (
   "github.com/rwcarlsen/cas/blob"
   "encoding/json"
@@ -149,6 +148,29 @@ func Contains(substr string) FilterFunc {
   return func(b *blob.Blob) bool {
     s := string(b.Content)
     if strings.Contains(s, substr) {
+      return true
+    }
+    return false
+  }
+}
+
+func StampedWithin(dur time.Duration) FilterFunc {
+  return func(b *blob.Blob) bool {
+    var m blob.MetaData
+    err := json.Unmarshal(b.Content, &m)
+    if err != nil {
+      return false
+    }
+
+    if val, ok := m[blob.TimeField]; ok {
+      t, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", val)
+      if err != nil {
+        return false
+      }
+
+      if time.Since(t) > dur {
+        return false
+      }
       return true
     }
     return false
