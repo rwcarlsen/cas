@@ -18,8 +18,9 @@ var (
 )
 
 func main() {
-  http.HandleFunc("/get", get)
-  http.HandleFunc("/put", putnote)
+  http.HandleFunc("/get/", get)
+  http.HandleFunc("/put/", put)
+  http.HandleFunc("/index/", indexer)
 
   fmt.Println("Starting http server...")
   err := http.ListenAndServe("0.0.0.0:7777", nil)
@@ -28,6 +29,29 @@ func main() {
     fmt.Println(err)
     return
   }
+}
+
+func get(w http.ResponseWriter, req *http.Request) {
+  m := blob.NewMeta(blob.NoneKind)
+  defer func(m blob.MetaData) {
+    msg := "blob retrieved sucessfully"
+    if r := recover(); r != nil {
+      fmt.Println(r)
+      msg = "blob retrieval failed: " + r.(error).Error()
+    }
+
+    m["message"] = msg
+    resp, _ := m.ToBlob()
+    w.Write(resp)
+  }(m)
+
+
+  ref, err := ioutil.ReadAll(req.Body)
+  check(err)
+  m["blob-ref"] = ref
+
+  b, err := db.Get(string(ref))
+  check(err)
 }
 
 func put(w http.ResponseWriter, req *http.Request) {
@@ -54,26 +78,32 @@ func put(w http.ResponseWriter, req *http.Request) {
   check(err)
 }
 
-func get(w http.ResponseWriter, req *http.Request) {
-  m := blob.NewMeta(blob.NoneKind)
-  defer func(m blob.MetaData) {
-    msg := "blob retrieved sucessfully"
-    if r := recover(); r != nil {
-      fmt.Println(r)
-      msg = "blob retrieval failed: " + r.(error).Error()
-    }
+func indexer(w http.ResponseWriter, req *http.Request) {
+  b.
 
-    m["message"] = msg
-    resp, _ := m.ToBlob()
-    w.Write(resp)
-  }(m)
+}
 
+type Indexer struct {
+  queries map[string]*blobdb.Query
+}
 
-  ref, err := ioutil.ReadAll(req.Body)
-  check(err)
-  m["blob-ref"] = ref
+func (ind *indexer)
 
-  b, err := db.Get(string(ref))
-  check(err)
+func (ind *Indexer) Start() {
+  for _, q := range ind.queries {
+    q.Open()
+  }
+}
+
+func (ind *Indexer) Notify(blobs ...*blob.Blob) {
+  for _, q := range ind.queries {
+    q.Process(blobs...)
+  }
+}
+
+func (ind *Indexer) Stop() {
+  for _, q := range ind.queries {
+    q.Close()
+  }
 }
 

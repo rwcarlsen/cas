@@ -1,5 +1,6 @@
 
 package blobdb 
+
 import (
   "github.com/rwcarlsen/cas/blob"
   "encoding/json"
@@ -133,6 +134,10 @@ func (q *Query) SetRoots(roots ...*Filter) {
   for _, f := range roots {
     q.roots = append(q.roots, f.in)
   }
+}
+
+type Indexer struct {
+  queries map[string]*Query
 }
 
 /////////////////////////////////////////////////////////
