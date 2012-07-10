@@ -10,6 +10,7 @@ import (
   "os"
   "encoding/hex"
   "crypto"
+  "path/filepath"
 )
 
 var (
@@ -88,6 +89,31 @@ func (db *dbase) Put(blobs ...*blob.Blob) (err error) {
     }
   }
   return dup
+}
+
+// Walk traverses the dbase and returns each blob through the passed 
+// channel. Runs in a self-dispatched goroutine
+func (db *dbase) Walk() chan *blob.Blob {
+  ch := make(chan *blob.Blob)
+  fn := func(path string, info os.FileInfo, inerr error) error {
+    if info.IsDir() {
+      return nil
+    }
+
+    b, err := db.Get(path)
+    if err != nil {
+      return nil
+    }
+    ch <- b
+    return nil
+  }
+
+  go func() {
+    filepath.Walk(db.location, fn)
+    close(ch)
+  }()
+
+  return ch
 }
 
 func (db *dbase) writeBlob(b *blob.Blob) (err error) {

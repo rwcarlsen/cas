@@ -19,9 +19,18 @@ const (
 
 type Kind string
 
+// universal blob meta fields
+const (
+  RefsField = "rcas-refs"
+  KindField = "rcas-kind"
+  TimeField = "rcas-timestamp"
+)
+
+// universal blob KindField values
 const (
   FileKind = "file"
   NoteKind = "note"
+  NoneKind = "none"
 )
 
 var (
@@ -52,7 +61,7 @@ type MetaData map[string] interface{}
 
 func NewMeta(kind Kind) MetaData {
   m := MetaData{}
-  m["blob-type"] = kind
+  m[KindField] = kind
   return m
 }
 
@@ -61,11 +70,11 @@ func (m MetaData) SetObjectRef(ref string) {
 }
 
 func (m MetaData) AttachRefs(refs ...string) {
-  m["refs"] = refs
+  m[RefsField] = refs
 }
 
 func (m MetaData) ToBlob() (b *Blob, err error) {
-  m["timestamp"] = time.Now().UTC()
+  m[TimeField] = time.Now().UTC()
   data, err := json.Marshal(m)
   if err != nil {
     return nil, err
@@ -93,7 +102,7 @@ func SplitRaw(data []byte, blockSize int) []*Blob {
   return blobs
 }
 
-// Object creates an immutable timestamped blob that can be used to
+// Object creates an immutable time-stamped blob that can be used to
 // simulate mutable objects that have a dynamic, pruneable revision
 // history.
 func Object() (b *Blob, err error) {
