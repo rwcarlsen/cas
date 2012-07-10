@@ -2,31 +2,38 @@
 package main
 
 import (
-  "os"
-  "io"
-  "io/ioutil"
   "fmt"
+  "encoding/json"
+  "io/ioutil"
   "net/http"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
-  "encoding/json"
-  "mime/multipart"
 )
 
 const (
   dbServer = "localhost"
+  dbPath = "./dbase"
 )
 
 var (
-  db, _ = blobdb.New("./dbase")
+  db, _ = blobdb.New(dbPath)
+  indexer = blobdb.NewIndexer()
 )
 
 func main() {
-  http.HandleFunc("/", staticHandler)
+  ch := db.Walk()
 
-  http.HandleFunc("/cas/get", get)
-  http.HandleFunc("/cas/putnote", putnote)
-  http.HandleFunc("/cas/putfiles/", putfiles)
+  indexer.Start()
+  defer indexer.Stop()
+
+  for b := range ch {
+    indexer.Notify(b)
+  }
+
+  http.HandleFunc("/get/", RequireAuth(get))
+  http.HandleFunc("/put/", RequireAuth(put))
+  http.HandleFunc("/index/", RequireAuth(index))
+  http.HandleFunc("/share/", RequireAuth(share))
 
   fmt.Println("Starting http server...")
   err := http.ListenAndServe("0.0.0.0:8888", nil)
@@ -37,126 +44,103 @@ func main() {
   }
 }
 
-func staticHandler(w http.ResponseWriter, r *http.Request) {
-  defer deferWrite(w)
-
-  pth := r.URL.Path[1:]
-  if pth == "cas/" {
-    static("index.html", w)
-  } else if pth == "cas/file-upload" {
-    static("fupload/index.html", w)
-  } else if pth == "cas/note-drop" {
-    static("notedrop/index.html", w)
-  } else if pth == "favicon.ico" {
-    static(pth, w)
-  } else {
-    if len(pth) > 4 {
-      static(pth[4:], w)
-    }
-  }
-}
-
-func static(pth string, w http.ResponseWriter) {
-  f, err := os.Open(pth)
-  check(err)
-
-  w.Header().Set("Content-Type", contentType(pth, f))
-
-  _, err = io.Copy(w, f)
-  check(err)
-}
-
-func putnote(w http.ResponseWriter, req *http.Request) {
-  defer deferWrite(w)
-
-  body, err := ioutil.ReadAll(req.Body)
-  check(err)
-
-  var note blob.MetaData
-  err = json.Unmarshal(body, &note)
-  check(err)
-
-  meta := blob.NewMeta(blob.NoteKind)
-  for key, val := range meta {
-    note[key] = val
-  }
-
-  b, err := note.ToBlob()
-  check(err)
-  err = db.Put(b)
-  check(err)
-
-  resp, err := json.MarshalIndent(note, "", "    ")
-  check(err)
-
-  w.Write(resp)
-}
-
-func putfiles(w http.ResponseWriter, req *http.Request) {
-  defer deferPrint()
-
-	mr, err := req.MultipartReader()
-  check(err)
-
-  resp := []interface{}{}
-
-	for part, err := mr.NextPart(); err == nil; {
-		if name := part.FormName(); name == "" {
-      continue
-    } else if part.FileName() == "" {
-      continue
-    }
-    fmt.Println("handling file '" + part.FileName() + "'")
-    resp = append(resp, storeFileBlob(part))
-		part, err = mr.NextPart()
-	}
-
-  data, _ := json.Marshal(resp)
-  _, _ = w.Write(data)
-}
-
-func storeFileBlob(part *multipart.Part) (meta blob.MetaData) {
+func get(w http.ResponseWriter, req *http.Request) {
   defer func() {
-    delete(meta, "refs")
     if r := recover(); r != nil {
-      meta["error"] = r.(error).Error()
+      fmt.Println(r)
+      msg := "blob retrieval failed: " + r.(error).Error()
+      m := blob.NewMeta(blob.NoneKind)
+      m["message"] = msg
+      resp, _ := m.ToBlob()
+      w.Write(resp.Content)
     }
   }()
-
-  meta = blob.NewMeta(blob.FileKind)
-  meta["name"] = part.FileName()
-
-  data, err := ioutil.ReadAll(part)
-  check(err)
-
-  meta["size"] = len(data)
-
-  blobs := blob.SplitRaw(data, blob.DefaultChunkSize)
-  refs := blob.RefsFor(blobs)
-  meta.AttachRefs(refs...)
-
-  m, err := meta.ToBlob()
-  check(err)
-
-  err = db.Put(m)
-  if err != blobdb.DupContentErr {
-    check(err)
-  }
-
-  err = db.Put(blobs...)
-  check(err)
-
-  return
-}
-
-func get(w http.ResponseWriter, req *http.Request) {
-  defer deferWrite(w)
 
   ref, err := ioutil.ReadAll(req.Body)
   check(err)
 
   b, err := db.Get(string(ref))
   check(err)
+
+  w.Write(b.Content)
+}
+
+func put(w http.ResponseWriter, req *http.Request) {
+  m := blob.NewMeta(blob.NoneKind)
+  defer func(m blob.MetaData) {
+    msg := "blob posted sucessfully"
+    if r := recover(); r != nil {
+      fmt.Println(r)
+      msg = "blob post failed: " + r.(error).Error()
+    }
+
+    m["message"] = msg
+    resp, _ := m.ToBlob()
+    w.Write(resp.Content)
+  }(m)
+
+  body, err := ioutil.ReadAll(req.Body)
+  check(err)
+
+  b := blob.Raw(body)
+  m["blob-ref"] = b.Ref()
+
+  err = db.Put(b)
+  check(err)
+}
+
+func index(w http.ResponseWriter, req *http.Request) {
+  defer deferWrite(w)
+
+  qname, err := ioutil.ReadAll(req.Body)
+  check(err)
+  refs, err := indexer.Results(string(qname))
+  check(err)
+  data, err := json.Marshal(refs)
+  check(err)
+
+  w.Write(data)
+}
+
+func share(w http.ResponseWriter, req *http.Request) {
+  defer func() {
+    if r := recover(); r != nil {
+      fmt.Println(r)
+      msg := "blob retrieval failed: " + r.(error).Error()
+      m := blob.NewMeta(blob.NoneKind)
+      m["message"] = msg
+      resp, _ := m.ToBlob()
+      w.Write(resp.Content)
+    }
+  }()
+
+  ref := req.FormValue("ref")
+  b, err := db.Get(ref)
+  check(err)
+  //m, err := b.ToMeta()
+  //check(err)
+
+  //kind, ok := m[blob.KindField]
+  //if !ok {
+  //  // unauthorized
+  //  return
+  //}
+
+  //if kind != blob.ShareKind {
+  //  // unauthorized
+  //  return
+  //}
+
+  fname := "what a name"
+
+  head := w.Header()
+  head.Set("Content-Type", "application/octet-stream")
+  head.Set("Content-Disposition", "attachment; filename=\"" + fname + "\"")
+  head.Set("Content-Transfer-Encoding", "binary")
+  head.Set("Accept-Ranges", "bytes")
+  head.Set("Cache-Control", "private")
+  head.Set("Pragma", "private")
+  head.Set("Expires", "Mon, 26 Jul 1997 05:00:00 GMT")
 
   w.Write(b.Content)
 }
