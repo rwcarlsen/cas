@@ -1,4 +1,35 @@
-package server
+/*
+Copyright 2011 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package main
+
+import (
+	"encoding/base64"
+	"fmt"
+	"net/http"
+	"os"
+	"regexp"
+	"strings"
+)
+
+var kBasicAuthPattern *regexp.Regexp = regexp.MustCompile(`^Basic ([a-zA-Z0-9\+/=]+)`)
+
+var (
+  mode = &UserPass{Username: "robert", Password: "password"}
+)
 
 func basicAuth(req *http.Request) (string, string, error) {
 	auth := req.Header.Get("Authorization")
@@ -27,13 +58,9 @@ func basicAuth(req *http.Request) (string, string, error) {
 // is of the kind "userpass:username:pass"
 type UserPass struct {
 	Username, Password string
-	OrLocalhost        bool // if true, allow localhost ident auth too
 }
 
 func (up *UserPass) IsAuthorized(req *http.Request) bool {
-	if up.OrLocalhost && localhostAuthorized(req) {
-		return true
-	}
 	user, pass, err := basicAuth(req)
 	if err != nil {
 		return false
@@ -41,6 +68,21 @@ func (up *UserPass) IsAuthorized(req *http.Request) bool {
 	return user == up.Username && pass == up.Password
 }
 
-func (up *UserPass) AddAuthHeader(req *http.Request) {
-	req.SetBasicAuth(up.Username, up.Password)
+func SendUnauthorized(conn http.ResponseWriter) {
+	realm := "rcas"
+	conn.Header().Set("WWW-Authenticate", fmt.Sprintf("Basic realm=%q", realm))
+	conn.WriteHeader(http.StatusUnauthorized)
+	fmt.Fprintf(conn, "<h1>Unauthorized</h1>")
+}
+
+// requireAuth wraps a function with another function that enforces
+// HTTP Basic Auth.
+func RequireAuth(handler func(conn http.ResponseWriter, req *http.Request)) func(conn http.ResponseWriter, req *http.Request) {
+	return func(conn http.ResponseWriter, req *http.Request) {
+		if mode.IsAuthorized(req) {
+			handler(conn, req)
+		} else {
+			SendUnauthorized(conn)
+		}
+	}
 }

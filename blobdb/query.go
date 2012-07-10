@@ -49,9 +49,6 @@ func (f *Filter) dispatch() {
 
 // Query is used to coordinate arbitrary multi-filter searches through
 // blobs.
-//
-// Note that you can feed a query's own results back into its Process
-// method to effectively have dynamic update of time-dependent queries.
 type Query struct {
   filters []*Filter
   done []chan bool

@@ -40,6 +40,7 @@ func (ind *Indexer) RefreshAll() {
   }
 }
 
+// Refresh pipes a query's results back into itself and reprocesses them.
 func (ind *Indexer) Refresh(name string) error {
   q, ok := ind.queries[name]
   if !ok {
@@ -51,6 +52,14 @@ func (ind *Indexer) Refresh(name string) error {
   q.Process(res...)
 
   return nil
+}
+
+func (ind *Indexer) Results(name string) (refs []string, err error) {
+  q, ok := ind.queries[name]
+  if !ok {
+    return nil, errors.New("blobdb: invalid query name")
+  }
+  return blob.RefsFor(q.Results), nil
 }
 
 // NewQuery returns a new query that is automatically bound to this 

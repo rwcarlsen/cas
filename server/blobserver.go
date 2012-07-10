@@ -19,9 +19,7 @@ var (
   indexer = blobdb.NewIndexer()
 )
 
-// use this to give indexer an initial configuration
 func init() {
-  // pass all blobs in db to indexer to initialize all its queries' results
   ch := db.Walk()
 
   indexer.Start()
@@ -33,9 +31,10 @@ func init() {
 }
 
 func main() {
-  http.HandleFunc("/get/", get)
-  http.HandleFunc("/put/", put)
-  http.HandleFunc("/index/", indexer)
+
+  http.HandleFunc("/get/", RequireAuth(get))
+  http.HandleFunc("/put/", RequireAuth(put))
+  http.HandleFunc("/index/", RequireAuth(index))
 
   fmt.Println("Starting http server...")
   err := http.ListenAndServe("0.0.0.0:7777", nil)
@@ -59,7 +58,6 @@ func get(w http.ResponseWriter, req *http.Request) {
     resp, _ := m.ToBlob()
     w.Write(resp)
   }(m)
-
 
   ref, err := ioutil.ReadAll(req.Body)
   check(err)
@@ -89,12 +87,20 @@ func put(w http.ResponseWriter, req *http.Request) {
   b := blob.Raw(body)
   m["blob-ref"] = b.Ref()
 
-  err := db.Put(b)
+  err = db.Put(b)
   check(err)
 }
 
-func indexer(w http.ResponseWriter, req *http.Request) {
-  b.
+func index(w http.ResponseWriter, req *http.Request) {
+  defer deferWrite()
 
+  qname, err := ioutil.ReadAll(req.Body)
+  check(err)
+  refs, err := indexer.Results(qname)
+  check(err)
+  data, err := json.Marshal(refs)
+  check(err)
+
+  w.Write(data)
 }
 
