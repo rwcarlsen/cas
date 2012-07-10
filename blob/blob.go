@@ -31,6 +31,7 @@ const (
   FileKind = "file"
   NoteKind = "note"
   NoneKind = "none"
+  ShareKind = "share"
 )
 
 var (
@@ -134,6 +135,11 @@ func (b *Blob) Ref() string {
 
 func (b *Blob) String() string {
   return b.Ref() + ":\n" +  string(b.Content)
+}
+
+func (b *Blob) ToMeta() (m MetaData , err error) {
+  err = json.Unmarshal(b.Content, &m)
+  return m, err
 }
 
 // Combine reconstitutes split data into a single byte slice

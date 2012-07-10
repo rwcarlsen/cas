@@ -74,7 +74,7 @@ func SendUnauthorized(conn http.ResponseWriter) {
 	fmt.Fprintf(conn, "<h1>Unauthorized</h1>")
 }
 
-// requireAuth wraps a function with another function that enforces
+// RequireAuth wraps a function with another function that enforces
 // HTTP Basic Auth.
 func RequireAuth(handler func(conn http.ResponseWriter, req *http.Request)) func(conn http.ResponseWriter, req *http.Request) {
 	return func(conn http.ResponseWriter, req *http.Request) {
