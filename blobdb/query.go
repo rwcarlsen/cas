@@ -5,6 +5,7 @@ import (
   "github.com/rwcarlsen/cas/blob"
   "encoding/json"
   "strings"
+  "time"
 )
 
 // FilterFunc is used by Filter's to check whether a particular blob can
@@ -56,7 +57,6 @@ type Query struct {
   done []chan bool
   roots []chan *blob.Blob
   skip chan *blob.Blob
-  Skipped []*blob.Blob
   Results []*blob.Blob
   result chan *blob.Blob
 }
@@ -68,7 +68,6 @@ func NewQuery() *Query {
       roots: make([]chan *blob.Blob, 0),
       skip: make(chan *blob.Blob),
       result: make(chan *blob.Blob),
-      Skipped: make([]*blob.Blob, 0),
       Results: make([]*blob.Blob, 0),
     }
 }
@@ -79,10 +78,9 @@ func (q *Query) Open() {
   }
 }
 
-// Clear resets a query's Results and Skipped fields (as if no blobs had
+// Clear resets a query's Results (as if no blobs had
 // been been processed)
 func (q *Query) Clear() {
-  q.Skipped = make([]*blob.Blob, 0)
   q.Results = make([]*blob.Blob, 0)
 }
 
@@ -105,7 +103,6 @@ func (q *Query) Process(blobs ...*blob.Blob) {
         case res := <-q.result:
           q.Results = append(q.Results, res)
         case sk := <-q.skip:
-          q.Skipped = append(q.Skipped, sk)
       }
     }
   }
@@ -134,10 +131,6 @@ func (q *Query) SetRoots(roots ...*Filter) {
   for _, f := range roots {
     q.roots = append(q.roots, f.in)
   }
-}
-
-type Indexer struct {
-  queries map[string]*Query
 }
 
 /////////////////////////////////////////////////////////

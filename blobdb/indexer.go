@@ -10,7 +10,11 @@ type Indexer struct {
   queries map[string]*Query
 }
 
-func (ind *indexer)
+func NewIndexer() *Indexer {
+  return &Indexer{
+    queries: make(map[string]*Query, 0),
+  }
+}
 
 func (ind *Indexer) Start() {
   for _, q := range ind.queries {
@@ -36,7 +40,7 @@ func (ind *Indexer) RefreshAll() {
   }
 }
 
-func (ind *Indexer) Refresh(name string) err {
+func (ind *Indexer) Refresh(name string) error {
   q, ok := ind.queries[name]
   if !ok {
     return errors.New("blobdb: invalid query name")
@@ -51,11 +55,11 @@ func (ind *Indexer) Refresh(name string) err {
 
 // NewQuery returns a new query that is automatically bound to this 
 // Indexer.
-func (ind *Indexer) NewQuery(name string) *Query, error {
+func (ind *Indexer) NewQuery(name string) (q *Query, err error) {
   if _, ok := ind.queries[name]; ok {
     return nil, errors.New("blobdb: query name already exists")
   }
-  q := NewQuery()
+  q = NewQuery()
   ind.queries[name] = q
   return q, nil
 }

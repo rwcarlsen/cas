@@ -19,16 +19,18 @@ const (
 
 type Kind string
 
-const (
-  FileKind = "file"
-  NoteKind = "note"
-  NoneKind = "none"
-)
-
+// universal blob meta fields
 const (
   RefsField = "rcas-refs"
   KindField = "rcas-kind"
   TimeField = "rcas-timestamp"
+)
+
+// universal blob KindField values
+const (
+  FileKind = "file"
+  NoteKind = "note"
+  NoneKind = "none"
 )
 
 var (

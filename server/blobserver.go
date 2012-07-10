@@ -11,11 +11,26 @@ import (
 
 const (
   dbServer = "localhost"
+  dbPath = "./dbase"
 )
 
 var (
-  db, _ = blobdb.New("./dbase")
+  db, _ = blobdb.New(dbPath)
+  indexer = blobdb.NewIndexer()
 )
+
+// use this to give indexer an initial configuration
+func init() {
+  // pass all blobs in db to indexer to initialize all its queries' results
+  ch := db.Walk()
+
+  indexer.Start()
+  defer indexer.Stop()
+
+  for b := range ch {
+    indexer.Notify(b)
+  }
+}
 
 func main() {
   http.HandleFunc("/get/", get)
@@ -81,29 +96,5 @@ func put(w http.ResponseWriter, req *http.Request) {
 func indexer(w http.ResponseWriter, req *http.Request) {
   b.
 
-}
-
-type Indexer struct {
-  queries map[string]*blobdb.Query
-}
-
-func (ind *indexer)
-
-func (ind *Indexer) Start() {
-  for _, q := range ind.queries {
-    q.Open()
-  }
-}
-
-func (ind *Indexer) Notify(blobs ...*blob.Blob) {
-  for _, q := range ind.queries {
-    q.Process(blobs...)
-  }
-}
-
-func (ind *Indexer) Stop() {
-  for _, q := range ind.queries {
-    q.Close()
-  }
 }
 
