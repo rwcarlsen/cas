@@ -1,36 +1,45 @@
+
 package blob
 
 import (
   "os"
   "path/filepath"
   "io/ioutil"
+  "time"
 )
+
+const (
+  defaultChunkSize = 1048576 // in bytes
+)
+
+type FileMeta struct {
+  RcasType Type
+  Name string
+  Path string
+  Size int64
+  ModTime time.Time
+  ContentRefs []string
+}
 
 // NewFileMeta creates a map containing meta-data for a file
 // at the specified path.
-func NewFileMeta(path string) (meta MetaData, err error) {
-  f, err := os.Open(path)
-  if err != nil {
-    return nil, err
+func NewFileMeta() *FileMeta {
+  return &FileMeta{
+    RcasType: FileType,
+    ContentRefs: make([]string, 0),
   }
-
-  abs, _ := filepath.Abs(path)
-  stat, err := f.Stat()
-  if err != nil {
-    return nil, err
-  }
-
-  meta = NewMeta(FileKind)
-  meta["name"] = stat.Name()
-  meta["path"] = abs
-  meta["size"] = stat.Size()
-  meta["mod-time"] = stat.ModTime().UTC()
-
-  return meta, nil
 }
 
-func FileBlobs(path string) (blobs []*Blob, err error) {
-  f, err := os.Open(path)
+// AddContentRefs adds refs for blobs that constitute this file's bytes
+func (m *FileMeta) AddContentRefs(refs ...string) {
+  m.ContentRefs = append(m.ContentRefs, refs...)
+}
+
+// LoadFromPath fills in all meta fields (name, size, mod time, ...) by reading
+// the info from the file located at path. Blobs constituting the file's bytes
+// are returned. AddContentRefs is invoked for all the blobs returned.
+func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
+  f, err := os.Open(m.Path)
   if err != nil {
     return nil, err
   }
@@ -40,38 +49,59 @@ func FileBlobs(path string) (blobs []*Blob, err error) {
     return nil, err
   }
 
-  chunks := SplitRaw(data, DefaultChunkSize)
+  chunks = SplitRaw(data, defaultChunkSize)
+
+  // fill in meta fields
+  abs, _ := filepath.Abs(path)
+  stat, err := f.Stat()
+  if err != nil {
+    return nil, err
+  }
+
+  m.Name = stat.Name()
+  m.Path = abs
+  m.Size = stat.Size()
+  m.ModTime = stat.ModTime().UTC()
+  m.AddContentRefs(RefsFor(chunks)...)
 
   return chunks, nil
 }
 
-func FileBlobsAndMeta(path string) (meta MetaData, blobs []*Blob, err error) {
-  meta, err = NewFileMeta(path)
-  if err != nil {
-    return nil, nil, err
+// SplitFile creates blobs by splitting data into blockSize (bytes) chunks
+func SplitRaw(data []byte, blockSize int) []*Blob {
+  blobs := make([]*Blob, 0)
+  for i := 0; i < len(data); i += blockSize {
+    end := min(len(data), i + blockSize)
+    blobs = append(blobs, NewRaw(data[i:end]))
   }
-
-  blobs, err = FileBlobs(path)
-  if err != nil {
-    return nil, nil, err
-  }
-
-  meta.AttachRefs(RefsFor(blobs)...)
-  return
+  return blobs
 }
 
-func DirBlobsAndMeta(path string) (metas []MetaData, blobs []*Blob, err error) {
+// CombineFile reconstitutes split data into a single byte slice
+func CombineRaw(blobs ...*Blob) []byte {
+  data := make([]byte, 0)
+
+  for _, b := range blobs {
+    data = append(data, b.Content...)
+  }
+  return data
+}
+
+func DirBlobsAndMeta(path string) (metas []*FileMeta, blobs []*Blob, err error) {
   blobs = make([]*Blob, 0)
-  metas = make([]MetaData, 0)
+  metas = make([]*FileMeta, 0)
 
   walkFn := func(path string, info os.FileInfo, inerr error) error {
     if info.IsDir() {
       return nil
     }
-    meta, newblobs, err := FileBlobsAndMeta(path)
+
+    meta := NewFileMeta()
+    newblobs, err := meta.LoadFromPath(path)
     if err != nil {
       return err
     }
+
     blobs = append(blobs, newblobs...)
     metas = append(metas, meta)
     return nil
@@ -79,5 +109,15 @@ func DirBlobsAndMeta(path string) (metas []MetaData, blobs []*Blob, err error) {
 
   err = filepath.Walk(path, walkFn)
   return metas, blobs, err
+}
+
+func min(vals ...int) int {
+  smallest := vals[0]
+  for _, val := range vals[1:] {
+    if val < smallest {
+      smallest = val
+    }
+  }
+  return smallest
 }
 

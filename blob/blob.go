@@ -3,7 +3,6 @@ package blob
 
 import (
   "crypto"
-  "crypto/rand"
   "crypto/sha256"
   "crypto/sha512"
   "encoding/hex"
@@ -14,24 +13,24 @@ import (
 const (
   NameHashSep = "-"
   DefaultHash = crypto.SHA256
-  DefaultChunkSize = 1048576 // in bytes
 )
 
-type Kind string
-
-// universal blob meta fields
+// universal meta blob fields
 const (
-  RefsField = "rcas-refs"
-  KindField = "rcas-kind"
-  TimeField = "rcas-timestamp"
+  VersionField = "rcasVersion"
+  Version = "0.1"
+  TimeField = "rcasTimestamp"
 )
 
-// universal blob KindField values
+type Type string
+
+// universal TypeField values
 const (
-  FileKind = "file"
-  NoteKind = "note"
-  NoneKind = "none"
-  ShareKind = "share"
+  FileType Type = "file"
+  NoteType = "note"
+  NoneType = "none"
+  ShareType = "share"
+  ObjectType = "object"
 )
 
 var (
@@ -57,30 +56,38 @@ func NameToHash(n string) crypto.Hash {
   return name2Hash[n]
 }
 
-// standardized way to create key-value based blobs
+// generic type for creating key-value based blobs
 type MetaData map[string] interface{}
 
-func NewMeta(kind Kind) MetaData {
-  m := MetaData{}
-  m[KindField] = kind
-  return m
-}
+// Marshal creates a time-stamped, json encoded blob from v.
+func Marshal(v interface{}) (b *Blob, err error) {
 
-func (m MetaData) SetObjectRef(ref string) {
-  m["object-ref"] = ref
-}
-
-func (m MetaData) AttachRefs(refs ...string) {
-  m[RefsField] = refs
-}
-
-func (m MetaData) ToBlob() (b *Blob, err error) {
-  m[TimeField] = time.Now().UTC()
-  data, err := json.Marshal(m)
+  data, err := json.Marshal(v)
   if err != nil {
     return nil, err
   }
-  return Raw(data), nil
+
+  var m MetaData
+  err = json.Unmarshal(data, &m)
+  if err != nil {
+    return nil, err
+  }
+
+  m[TimeField] = time.Now().UTC()
+  m[VersionField] = Version
+
+  data, err = json.Marshal(m)
+  if err != nil {
+    return nil, err
+  }
+
+  return NewRaw(data), nil
+}
+
+// Unmarshal parses a json encoded blob and stores the result in 
+// the value pointed to by v.
+func Unmarshal(b *Blob, v interface{}) error {
+  return json.Unmarshal(b.Content, v)
 }
 
 type Blob struct {
@@ -89,46 +96,18 @@ type Blob struct {
 }
 
 // Raw creates a blob using the DefaultHash holding the passed content.
-func Raw(content []byte) *Blob {
+func NewRaw(content []byte) *Blob {
   return &Blob{Hash: DefaultHash, Content: content}
 }
 
-// SplitRaw creates blobs by splitting data into blockSize (bytes) chunks
-func SplitRaw(data []byte, blockSize int) []*Blob {
-  blobs := make([]*Blob, 0)
-  for i := 0; i < len(data); i += blockSize {
-    end := min(len(data), i + blockSize)
-    blobs = append(blobs, Raw(data[i:end]))
-  }
-  return blobs
-}
-
-// Object creates an immutable time-stamped blob that can be used to
-// simulate mutable objects that have a dynamic, pruneable revision
-// history.
-func Object() (b *Blob, err error) {
-  m := NewMeta("object")
-
-  r := make([]byte, 100)
-  if _, err = rand.Read(r); err != nil {
-    return nil, err
-  }
-  m["random"] = r
-
-  return m.ToBlob()
-}
-
-func (b *Blob) GetMeta() (meta MetaData, err error) {
-  err = json.Unmarshal(b.Content, &meta)
-  return
-}
-
+// Sum returns the hash sum of the blob's content using its hash function
 func (b *Blob) Sum() []byte {
   hsh := b.Hash.New()
   hsh.Write(b.Content)
   return hsh.Sum([]byte{})
 }
 
+// Ref returns hash-name + hash for the blob.
 func (b *Blob) Ref() string {
   return HashToName(b.Hash) + NameHashSep + hex.EncodeToString(b.Sum())
 }
@@ -137,36 +116,12 @@ func (b *Blob) String() string {
   return b.Ref() + ":\n" +  string(b.Content)
 }
 
-func (b *Blob) ToMeta() (m MetaData , err error) {
-  err = json.Unmarshal(b.Content, &m)
-  return m, err
-}
-
-// Combine reconstitutes split data into a single byte slice
-func Combine(blobs ...*Blob) []byte {
-  data := make([]byte, 0)
-
-  for _, b := range blobs {
-    data = append(data, b.Content...)
-  }
-  return data
-}
-
+// RefsFor returns a list of the refs for each blob in the given list.
 func RefsFor(blobs []*Blob) []string {
   refs := make([]string, len(blobs))
   for i, b := range blobs {
     refs[i] = b.Ref()
   }
   return refs
-}
-
-func min(vals ...int) int {
-  smallest := vals[0]
-  for _, val := range vals[1:] {
-    if val < smallest {
-      smallest = val
-    }
-  }
-  return smallest
 }
 

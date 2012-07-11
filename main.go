@@ -17,7 +17,7 @@ func main() {
 }
 
 func testRaw() {
-  b := blob.Raw([]byte("hello monkey man"))
+  b := blob.NewRaw([]byte("hello monkey man"))
   db, _ := blobdb.New(".")
 
   err := db.Put(b)
@@ -39,7 +39,8 @@ func testRaw() {
 func testFile() {
   db, _ := blobdb.New(".")
 
-  meta, blobs, err := blob.FileBlobsAndMeta("foodir/foo.txt")
+  meta := blob.NewFileMeta()
+  blobs, err := meta.LoadFromPath("foodir/foo.txt")
   if err != nil {
     fmt.Println(err)
     return
@@ -51,7 +52,7 @@ func testFile() {
     return
   }
 
-  m, _ := meta.ToBlob()
+  m, _ := blob.Marshal(meta)
   err = db.Put(m)
   if err != nil {
     fmt.Println(err)
@@ -99,9 +100,9 @@ func testDir() {
 }
 
 func testIndexer() {
-  b1 := blob.Raw([]byte("I am not json"))
-  b2 := blob.Raw([]byte("{\"key\":\"I am wrong json\"}"))
-  b3 := blob.Raw([]byte("{\"key\":\"I am right json\"}"))
+  b1 := blob.NewRaw([]byte("I am not json"))
+  b2 := blob.NewRaw([]byte("{\"key\":\"I am wrong json\"}"))
+  b3 := blob.NewRaw([]byte("{\"key\":\"I am right json\"}"))
 
   q := blobdb.NewQuery()
 
@@ -117,6 +118,5 @@ func testIndexer() {
   q.Process(b1, b2, b3)
 
   fmt.Println("results: ", q.Results)
-  fmt.Println("skipped: ", q.Skipped)
 }
 

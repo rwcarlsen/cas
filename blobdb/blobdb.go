@@ -59,7 +59,7 @@ func (db *dbase) Get(ref string) (b *blob.Blob, err error) {
   }
 
   hash, sum := blobRefParts(ref)
-  b = blob.Raw(data)
+  b = blob.NewRaw(data)
   b.Hash = hash
 
   err = verifyBlob(sum, b)

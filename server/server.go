@@ -49,24 +49,22 @@ func get(w http.ResponseWriter, req *http.Request) {
     if r := recover(); r != nil {
       fmt.Println(r)
       msg := "blob retrieval failed: " + r.(error).Error()
-      m := blob.NewMeta(blob.NoneKind)
+      m := make(blob.MetaData)
       m["message"] = msg
       resp, _ := m.ToBlob()
       w.Write(resp.Content)
     }
   }()
+  ref := req.FormValue("ref")
 
-  ref, err := ioutil.ReadAll(req.Body)
-  check(err)
-
-  b, err := db.Get(string(ref))
+  b, err := db.Get(ref)
   check(err)
 
   w.Write(b.Content)
 }
 
 func put(w http.ResponseWriter, req *http.Request) {
-  m := blob.NewMeta(blob.NoneKind)
+  m := make(blob.MetaData)
   defer func(m blob.MetaData) {
     msg := "blob posted sucessfully"
     if r := recover(); r != nil {
