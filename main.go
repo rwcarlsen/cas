@@ -75,7 +75,7 @@ func testDir() {
 
   metablobs := make([]*blob.Blob, 0)
   for _, meta := range metas {
-    m, _ := meta.ToBlob()
+    m, _ := blob.Marshal(meta)
     metablobs = append(metablobs, m)
   }
 
