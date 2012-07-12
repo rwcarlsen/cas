@@ -12,6 +12,10 @@ var (
   IndexEndErr = errors.New("blobdb: end of index")
 )
 
+// Iter is used to walk through blob refs of an index.  
+//
+// When there are no more blobs to iterate over, Next returns an empty string
+// along with IndexEndErr
 type Iter interface {
   Next() (string, error)
   SkipN(n int)
@@ -160,9 +164,9 @@ func (ti *TimeIndex) GetRef(i int) string {
   return ti.entries[i].ref
 }
 
-// IterRecent returns an iterator that starts from the most recent blob ref
+// IterNew returns an iterator that starts from the most recent blob ref
 // working backward in time.
-func (ti *TimeIndex) IterRecent() Iter {
+func (ti *TimeIndex) IterNew() Iter {
   return &backwardIter{
     at: ti.Len() - 1,
     ti: ti,
@@ -178,14 +182,34 @@ func (ti *TimeIndex) IterOld() Iter {
   }
 }
 
-// IterFrom returns an iterator that starts with the blob created closest to time t and
+// IterAround returns an iterator that starts with the blob created around time t and
 // gradually walks outward alternating older-newer.
-func (ti *TimeIndex) IterFrom(t time.Time) Iter {
+func (ti *TimeIndex) IterAround(t time.Time) Iter {
   i := ti.IndexNear(t)
   return &splitIter{
     high: i,
     low: i + 1,
     atTop: true,
+    ti: ti,
+  }
+}
+
+// IterForward returns an iterator that starts with the blob created around time t and
+// gradually walks forward in time toward more recent blobs.
+func (ti *TimeIndex) IterForward(t time.Time) Iter {
+  i := ti.IndexNear(t)
+  return &forwardIter{
+    at: i,
+    ti: ti,
+  }
+}
+
+// IterBackward returns an iterator that starts with a blob created around time t and
+// gradually walks backward in time toward older blobs.
+func (ti *TimeIndex) IterBackward(t time.Time) Iter {
+  i := ti.IndexNear(t)
+  return &backwardIter{
+    at: i,
     ti: ti,
   }
 }
