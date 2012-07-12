@@ -20,7 +20,7 @@ const (
   VersionField = "rcasVersion"
   Version = "0.1"
   TimeField = "rcasTimestamp"
-  TimeFormat = time.RFC3339Nano
+  TimeFormat = time.RFC3339
 )
 
 type Type string
@@ -74,7 +74,7 @@ func Marshal(v interface{}) (b *Blob, err error) {
     return nil, err
   }
 
-  m[TimeField] = time.Now().UTC().Format(TimeFormat)
+  m[TimeField] = time.Now().Format(TimeFormat)
   m[VersionField] = Version
 
   data, err = json.Marshal(m)

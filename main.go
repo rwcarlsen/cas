@@ -144,23 +144,26 @@ func testTimeIndex() {
   ti.Notify(b1, b2, b3, b4, b5)
 
   var m blob.MetaData
-  blob.Unmarshal(b3, &m)
+  blob.Unmarshal(b4, &m)
   t, _ := time.Parse(blob.TimeFormat, m[blob.TimeField].(string))
 
-  i := ti.IndexOf(t)
+  i := ti.IndexNear(t.Add(time.Millisecond * -1))
   ref := ti.GetRef(i)
+
+  fmt.Println("retrieved ref:", ref)
+
+  fmt.Println("all refs:")
+  fmt.Println(b1.Ref())
+  fmt.Println(b2.Ref())
+  fmt.Println(b3.Ref())
+  fmt.Println(b4.Ref())
+  fmt.Println(b5.Ref())
 
   if ref == b3.Ref() {
     fmt.Println("success!")
   } else {
-    fmt.Println("retrieved ref:", ref)
-
-    fmt.Println("all refs:")
-    fmt.Println(b1.Ref())
-    fmt.Println(b2.Ref())
-    fmt.Println(b3.Ref())
-    fmt.Println(b4.Ref())
-    fmt.Println(b5.Ref())
+    fmt.Println("failured")
   }
+
 }
 
