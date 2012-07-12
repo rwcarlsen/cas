@@ -23,6 +23,11 @@ type Filter struct {
   done chan bool
 }
 
+// SetFunc hot swaps fn in as the filter's pass-through/skip function.
+func (f *Filter) SetFunc(fn FilterFunc) {
+  f.fn = fn
+}
+
 // SendTo specifies the next filter for blobs that pass through this
 // filter. All filters are default initialized to send to a query's
 // results.
