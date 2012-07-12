@@ -9,7 +9,7 @@ import (
 )
 
 var (
-  IndexEndErr = errors.New("blobdb: end of index")
+  IndexEndErr = errors.New("index: end of index")
 )
 
 // Iter is used to walk through blob refs of an index.  
