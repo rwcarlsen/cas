@@ -54,7 +54,7 @@ type Query struct {
   done []chan bool
   roots []chan *blob.Blob
   skip chan *blob.Blob
-  Results []*blob.Blob
+  Results []string
   result chan *blob.Blob
 }
 
@@ -65,7 +65,7 @@ func NewQuery() *Query {
       roots: make([]chan *blob.Blob, 0),
       skip: make(chan *blob.Blob),
       result: make(chan *blob.Blob),
-      Results: make([]*blob.Blob, 0),
+      Results: make([]string, 0),
     }
 }
 
@@ -78,7 +78,7 @@ func (q *Query) Open() {
 // Clear resets a query's Results (as if no blobs had
 // been been processed)
 func (q *Query) Clear() {
-  q.Results = make([]*blob.Blob, 0)
+  q.Results = make([]string, 0)
 }
 
 // Close terminates and resets the query to blank (i.e. as returned by
@@ -98,7 +98,7 @@ func (q *Query) Process(blobs ...*blob.Blob) {
       ch <- b
       select {
         case res := <-q.result:
-          q.Results = append(q.Results, res)
+          q.Results = append(q.Results, res.Ref())
         case <-q.skip:
       }
     }
@@ -160,7 +160,7 @@ func StampedWithin(dur time.Duration) FilterFunc {
     }
 
     if val, ok := m[blob.TimeField]; ok {
-      t, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", val.(string))
+      t, err := time.Parse(blob.TimeFormat, val.(string))
       if err != nil {
         return false
       }

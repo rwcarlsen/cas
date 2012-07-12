@@ -3,6 +3,7 @@ package main
 
 import (
   "fmt"
+  "time"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
 )
@@ -13,7 +14,8 @@ func main() {
   //testRaw()
   //testFile()
   //testDir()
-  testIndexer()
+  //testQuery()
+  testTimeIndex()
 }
 
 func testRaw() {
@@ -99,7 +101,7 @@ func testDir() {
   }
 }
 
-func testIndexer() {
+func testQuery() {
   b1 := blob.NewRaw([]byte("I am not json"))
   b2 := blob.NewRaw([]byte("{\"key\":\"I am wrong json\"}"))
   b3 := blob.NewRaw([]byte("{\"key\":\"I am right json\"}"))
@@ -118,5 +120,47 @@ func testIndexer() {
   q.Process(b1, b2, b3)
 
   fmt.Println("results: ", q.Results)
+}
+
+func testTimeIndex() {
+  ti := blobdb.NewTimeIndex()
+
+  m1 := make(blob.MetaData)
+  m2 := make(blob.MetaData)
+  m3 := make(blob.MetaData)
+  m4 := make(blob.MetaData)
+  m5 := make(blob.MetaData)
+
+  b1, _ := blob.Marshal(m1)
+  time.Sleep(time.Second * 1)
+  b2, _ := blob.Marshal(m2)
+  time.Sleep(time.Second * 1)
+  b3, _ := blob.Marshal(m3)
+  time.Sleep(time.Second * 1)
+  b4, _ := blob.Marshal(m4)
+  time.Sleep(time.Second * 1)
+  b5, _ := blob.Marshal(m5)
+
+  ti.Notify(b1, b2, b3, b4, b5)
+
+  var m blob.MetaData
+  blob.Unmarshal(b3, &m)
+  t, _ := time.Parse(blob.TimeFormat, m[blob.TimeField].(string))
+
+  i := ti.IndexOf(t)
+  ref := ti.GetRef(i)
+
+  if ref == b3.Ref() {
+    fmt.Println("success!")
+  } else {
+    fmt.Println("retrieved ref:", ref)
+
+    fmt.Println("all refs:")
+    fmt.Println(b1.Ref())
+    fmt.Println(b2.Ref())
+    fmt.Println(b3.Ref())
+    fmt.Println(b4.Ref())
+    fmt.Println(b5.Ref())
+  }
 }
 

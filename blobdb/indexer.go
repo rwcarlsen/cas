@@ -4,72 +4,122 @@ package blobdb
 import (
   "github.com/rwcarlsen/cas/blob"
   "errors"
+  "time"
+  "sync"
 )
 
 type Indexer struct {
-  queries map[string]*Query
+  ti *TimeIndex
+  oi *ObjectIndex
 }
 
 func NewIndexer() *Indexer {
   return &Indexer{
-    queries: make(map[string]*Query, 0),
-  }
-}
-
-func (ind *Indexer) Start() {
-  for _, q := range ind.queries {
-    q.Open()
   }
 }
 
 func (ind *Indexer) Notify(blobs ...*blob.Blob) {
-  for _, q := range ind.queries {
-    q.Process(blobs...)
+  ind.ti.Notify(blobs...)
+  //ind.oi.Notify(blobs...)
+}
+
+/////////////////////////////////////////////////////////////////////
+/////////// Time Index Stuff ////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+type ObjectIndex struct {
+
+}
+
+/////////////////////////////////////////////////////////////////////
+/////////// Time Index Stuff ////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+var (
+  IndexEndErr = errors.New("blobdb: end of index")
+)
+
+type Iter interface {
+  Next() (*blob.Blob, error)
+  Prev() (*blob.Blob, error)
+  Reset()
+}
+
+type splitIter struct {
+  
+}
+
+type TimeEntry struct {
+  tm time.Time
+  ref string
+}
+
+type TimeIndex struct {
+  entries []*TimeEntry
+  lock sync.RWMutex
+}
+
+func NewTimeIndex() *TimeIndex {
+  return &TimeIndex{
+    entries: make([]*TimeEntry, 0),
   }
 }
 
-func (ind *Indexer) Stop() {
-  for _, q := range ind.queries {
-    q.Close()
+func (ti *TimeIndex) Notify(blobs ...*blob.Blob) {
+  ti.lock.Lock()
+  defer ti.lock.Unlock()
+
+  var t time.Time
+  for _, b := range blobs {
+    m := make(blob.MetaData)
+    err := blob.Unmarshal(b, &m)
+    if err != nil {
+      t = time.Now()
+    } else {
+      t, err = time.Parse(blob.TimeFormat, m[blob.TimeField].(string))
+      if err != nil {
+        t = time.Now()
+      }
+    }
+
+    ti.entries = append(ti.entries, &TimeEntry{tm: t, ref: b.Ref()})
   }
 }
 
-func (ind *Indexer) RefreshAll() {
-  for name, _ := range ind.queries {
-    ind.Refresh(name)
-  }
+func (ti *TimeIndex) Len() int {
+  ti.lock.RLock()
+  defer ti.lock.RUnlock()
+  return len(ti.entries)
 }
 
-// Refresh pipes a query's results back into itself and reprocesses them.
-func (ind *Indexer) Refresh(name string) error {
-  q, ok := ind.queries[name]
-  if !ok {
-    return errors.New("blobdb: invalid query name")
-  }
-
-  res := q.Results
-  q.Clear()
-  q.Process(res...)
-
-  return nil
+func (ti *TimeIndex) GetRef(i int) string {
+  ti.lock.RLock()
+  defer ti.lock.RUnlock()
+  return ti.entries[i].ref
 }
 
-func (ind *Indexer) Results(name string) (refs []string, err error) {
-  q, ok := ind.queries[name]
-  if !ok {
-    return nil, errors.New("blobdb: invalid query name")
+func (ti *TimeIndex) IndexOf(t time.Time) int {
+  ti.lock.RLock()
+  defer ti.lock.RUnlock()
+
+  down, up := 0, len(ti.entries)
+  curr, done := split(down, up)
+  for !done {
+    currt := ti.entries[curr].tm
+
+    if t.After(currt) {
+      down, up = curr, up
+    } else {
+      down, up = down, curr
+    }
+
+    curr, done = split(down, up)
   }
-  return blob.RefsFor(q.Results), nil
+  return curr
 }
 
-// NewQuery returns a new query that is automatically bound to this 
-// Indexer.
-func (ind *Indexer) NewQuery(name string) (q *Query, err error) {
-  if _, ok := ind.queries[name]; ok {
-    return nil, errors.New("blobdb: query name already exists")
+func split(prev, curr int) (next int, found bool) {
+  if curr - prev <= 1 {
+    return 0, true
   }
-  q = NewQuery()
-  ind.queries[name] = q
-  return q, nil
+  return (prev + curr) / 2, false
 }
 

@@ -63,7 +63,7 @@ func (db *dbase) Get(ref string) (b *blob.Blob, err error) {
   b.Hash = hash
 
   err = verifyBlob(sum, b)
-  return
+  return b, nil
 }
 
 func (db *dbase) Put(blobs ...*blob.Blob) (err error) {

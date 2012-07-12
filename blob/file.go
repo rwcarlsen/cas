@@ -10,10 +10,11 @@ import (
 
 const (
   defaultChunkSize = 1048576 // in bytes
+  TypeField = "rcasType"
 )
 
 type FileMeta struct {
-  RcasType Type
+  RcasType Type "rcasType"
   Name string
   Path string
   Size int64
