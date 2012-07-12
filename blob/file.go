@@ -10,7 +10,6 @@ import (
 
 const (
   defaultChunkSize = 1048576 // in bytes
-  TypeField = "rcasType"
 )
 
 type FileMeta struct {

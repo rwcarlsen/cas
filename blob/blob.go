@@ -21,6 +21,7 @@ const (
   Version = "0.1"
   TimeField = "rcasTimestamp"
   TimeFormat = time.RFC3339
+  TypeField = "rcasType"
 )
 
 type Type string

@@ -1,5 +1,5 @@
 
-package blobdb
+package index
 
 import (
   "github.com/rwcarlsen/cas/blob"

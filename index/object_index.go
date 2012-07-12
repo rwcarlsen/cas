@@ -1,5 +1,5 @@
 
-package blobdb
+package index
 
 type ObjectIndex struct {
 

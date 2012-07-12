@@ -3,11 +3,11 @@ package main
 
 import (
   "fmt"
-  "encoding/json"
   "io/ioutil"
   "net/http"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
+  "github.com/rwcarlsen/cas/index"
 )
 
 const (
@@ -17,22 +17,19 @@ const (
 
 var (
   db, _ = blobdb.New(dbPath)
-  indexer = blobdb.NewIndexer()
+  ti = index.NewTimeIndex()
 )
 
 func main() {
+  // initial updating of index
   ch := db.Walk()
-
-  indexer.Start()
-  defer indexer.Stop()
-
   for b := range ch {
-    indexer.Notify(b)
+    ti.Notify(b)
   }
 
   http.HandleFunc("/get/", RequireAuth(get))
   http.HandleFunc("/put/", RequireAuth(put))
-  http.HandleFunc("/index/", RequireAuth(index))
+  http.HandleFunc("/index/", RequireAuth(indexer))
   http.HandleFunc("/share/", RequireAuth(share))
 
   fmt.Println("Starting http server...")
@@ -51,7 +48,7 @@ func get(w http.ResponseWriter, req *http.Request) {
       msg := "blob retrieval failed: " + r.(error).Error()
       m := make(blob.MetaData)
       m["message"] = msg
-      resp, _ := m.ToBlob()
+      resp, _ := blob.Marshal(m)
       w.Write(resp.Content)
     }
   }()
@@ -65,7 +62,7 @@ func get(w http.ResponseWriter, req *http.Request) {
 
 func put(w http.ResponseWriter, req *http.Request) {
   m := make(blob.MetaData)
-  defer func(m blob.MetaData) {
+  defer func() {
     msg := "blob posted sucessfully"
     if r := recover(); r != nil {
       fmt.Println(r)
@@ -73,31 +70,29 @@ func put(w http.ResponseWriter, req *http.Request) {
     }
 
     m["message"] = msg
-    resp, _ := m.ToBlob()
+    resp, _ := blob.Marshal(m)
     w.Write(resp.Content)
-  }(m)
+  }()
 
   body, err := ioutil.ReadAll(req.Body)
   check(err)
 
-  b := blob.Raw(body)
+  b := blob.NewRaw(body)
   m["blob-ref"] = b.Ref()
 
   err = db.Put(b)
   check(err)
+  ti.Notify(b)
 }
 
-func index(w http.ResponseWriter, req *http.Request) {
+func indexer(w http.ResponseWriter, req *http.Request) {
   defer deferWrite(w)
 
-  qname, err := ioutil.ReadAll(req.Body)
-  check(err)
-  refs, err := indexer.Results(string(qname))
-  check(err)
-  data, err := json.Marshal(refs)
-  check(err)
+  //qname := req.FormValue("query")
 
-  w.Write(data)
+  // retrieve query results
+
+  //w.Write(results)
 }
 
 func share(w http.ResponseWriter, req *http.Request) {
@@ -105,9 +100,9 @@ func share(w http.ResponseWriter, req *http.Request) {
     if r := recover(); r != nil {
       fmt.Println(r)
       msg := "blob retrieval failed: " + r.(error).Error()
-      m := blob.NewMeta(blob.NoneKind)
+      m := make(blob.MetaData)
       m["message"] = msg
-      resp, _ := m.ToBlob()
+      resp, _ := blob.Marshal(m)
       w.Write(resp.Content)
     }
   }()
@@ -115,16 +110,18 @@ func share(w http.ResponseWriter, req *http.Request) {
   ref := req.FormValue("ref")
   b, err := db.Get(ref)
   check(err)
-  //m, err := b.ToMeta()
+
+  //m := make(blob.MetaData)
+  //m, err := blob.Unmarshal(b, &m)
   //check(err)
 
-  //kind, ok := m[blob.KindField]
+  //tpe, ok := m[blob.TypeField]
   //if !ok {
   //  // unauthorized
   //  return
   //}
 
-  //if kind != blob.ShareKind {
+  //if tpe != blob.ShareKind {
   //  // unauthorized
   //  return
   //}
