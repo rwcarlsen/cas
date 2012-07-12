@@ -111,6 +111,7 @@ type TimeEntry struct {
   ref string
 }
 
+// TimeIndex is a thread-safe, iterable, chronological index of blob refs.
 type TimeIndex struct {
   entries []*TimeEntry
   lock sync.RWMutex
@@ -122,6 +123,8 @@ func NewTimeIndex() *TimeIndex {
   }
 }
 
+// Notify adds additional blob refs (and their timestamps) to the chronological
+// index.
 func (ti *TimeIndex) Notify(blobs ...*blob.Blob) {
   ti.lock.Lock()
   defer ti.lock.Unlock()
@@ -143,18 +146,22 @@ func (ti *TimeIndex) Notify(blobs ...*blob.Blob) {
   }
 }
 
+// Len returns the number of blob refs in the index.
 func (ti *TimeIndex) Len() int {
   ti.lock.RLock()
   defer ti.lock.RUnlock()
   return len(ti.entries)
 }
 
+// GetRef returns the blob ref stored at index i (i=0 being the oldest blob)
 func (ti *TimeIndex) GetRef(i int) string {
   ti.lock.RLock()
   defer ti.lock.RUnlock()
   return ti.entries[i].ref
 }
 
+// IterRecent returns an iterator that starts from the most recent blob ref
+// working backward in time.
 func (ti *TimeIndex) IterRecent() Iter {
   return &backwardIter{
     at: ti.Len() - 1,
@@ -162,6 +169,8 @@ func (ti *TimeIndex) IterRecent() Iter {
   }
 }
 
+// IterOld returns an iterator that starts from the oldest blob ref working
+// forward in time.
 func (ti *TimeIndex) IterOld() Iter {
   return &forwardIter{
     at: 0,
@@ -169,6 +178,8 @@ func (ti *TimeIndex) IterOld() Iter {
   }
 }
 
+// IterFrom returns an iterator that starts with the blob created closest to time t and
+// gradually walks outward alternating older-newer.
 func (ti *TimeIndex) IterFrom(t time.Time) Iter {
   i := ti.IndexNear(t)
   return &splitIter{
@@ -179,6 +190,8 @@ func (ti *TimeIndex) IterFrom(t time.Time) Iter {
   }
 }
 
+// IndexNear returns the index of the blob created closed to time t. The actual
+// blob ref can be retrieved by passing the index to GetRef.
 func (ti *TimeIndex) IndexNear(t time.Time) int {
   ti.lock.RLock()
   defer ti.lock.RUnlock()
