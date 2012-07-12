@@ -68,8 +68,8 @@ func (ti *TimeIndex) Len() int {
   return len(ti.entries)
 }
 
-// GetRef returns the blob ref stored at index i (i=0 being the oldest blob)
-func (ti *TimeIndex) GetRef(i int) string {
+// RefAt returns the blob ref stored at index i (i=0 being the oldest blob)
+func (ti *TimeIndex) RefAt(i int) string {
   ti.lock.RLock()
   defer ti.lock.RUnlock()
   return ti.entries[i].ref
@@ -126,7 +126,7 @@ func (ti *TimeIndex) IterBackward(t time.Time) Iter {
 }
 
 // IndexNear returns the index of the blob created closed to time t. The actual
-// blob ref can be retrieved by passing the index to GetRef.
+// blob ref can be retrieved by passing the index to RefAt.
 func (ti *TimeIndex) IndexNear(t time.Time) int {
   ti.lock.RLock()
   defer ti.lock.RUnlock()
@@ -162,7 +162,7 @@ type forwardIter struct {
 func (it *forwardIter) Next() (ref string, err error) {
   if it.at < it.ti.Len() {
     it.at++
-    return it.ti.GetRef(it.at - 1), nil
+    return it.ti.RefAt(it.at - 1), nil
   }
   return "", IndexEndErr
 }
@@ -179,7 +179,7 @@ type backwardIter struct {
 func (it *backwardIter) Next() (ref string, err error) {
   if it.at >= 0 {
     it.at--
-    return it.ti.GetRef(it.at + 1), nil
+    return it.ti.RefAt(it.at + 1), nil
   }
   return "", IndexEndErr
 }
@@ -200,7 +200,7 @@ func (it *splitIter) Next() (ref string, err error) {
   if err != nil {
     return "", err
   }
-  return it.ti.GetRef(i), nil
+  return it.ti.RefAt(i), nil
 }
 
 func (it *splitIter) next() (i int, err error) {
