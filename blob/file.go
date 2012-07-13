@@ -39,6 +39,7 @@ func (m *FileMeta) AddContentRefs(refs ...string) {
 // the info from the file located at path. Blobs constituting the file's bytes
 // are returned. AddContentRefs is invoked for all the blobs returned.
 func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
+  m.Path = path
   f, err := os.Open(m.Path)
   if err != nil {
     return nil, err

@@ -4,25 +4,41 @@ package main
 import (
   "fmt"
   "time"
+  "os"
+  "path/filepath"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
+  "github.com/rwcarlsen/cas/blobserver"
+  "github.com/rwcarlsen/cas/index"
+)
+
+var (
+  home string = os.Getenv("HOME")
+  dbpath = filepath.Join(home, ".rcas")
+
+  testdirpath = "./foodir"
+  testfilepath = "./foodir/foo.txt"
 )
 
 
-
 func main() {
-  //testRaw()
-  //testFile()
-  //testDir()
+  testRaw()
+  testFile()
+  testDir()
   //testQuery()
-  testTimeIndex()
+  //testTimeIndex()
+  testBlobServer()
 }
 
 func testRaw() {
-  b := blob.NewRaw([]byte("hello monkey man"))
-  db, _ := blobdb.New(".")
+  db, err := blobdb.New(dbpath)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
 
-  err := db.Put(b)
+  b := blob.NewRaw([]byte("hello monkey man"))
+  err = db.Put(b)
   if err != nil {
     fmt.Println(err)
     return
@@ -39,10 +55,14 @@ func testRaw() {
 }
 
 func testFile() {
-  db, _ := blobdb.New(".")
+  db, err := blobdb.New(dbpath)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
 
   meta := blob.NewFileMeta()
-  blobs, err := meta.LoadFromPath("foodir/foo.txt")
+  blobs, err := meta.LoadFromPath(testfilepath)
   if err != nil {
     fmt.Println(err)
     return
@@ -67,9 +87,9 @@ func testFile() {
 }
 
 func testDir() {
-  db, _ := blobdb.New(".")
+  db, _ := blobdb.New(dbpath)
 
-  metas, blobs, err := blob.DirBlobsAndMeta("foodir")
+  metas, blobs, err := blob.DirBlobsAndMeta(testdirpath)
   if err != nil {
     fmt.Println(err)
     return
@@ -123,7 +143,7 @@ func testQuery() {
 }
 
 func testTimeIndex() {
-  ti := blobdb.NewTimeIndex()
+  ti := index.NewTimeIndex()
 
   m1 := make(blob.MetaData)
   m2 := make(blob.MetaData)
@@ -148,7 +168,7 @@ func testTimeIndex() {
   t, _ := time.Parse(blob.TimeFormat, m[blob.TimeField].(string))
 
   i := ti.IndexNear(t.Add(time.Millisecond * -1))
-  ref := ti.GetRef(i)
+  ref := ti.RefAt(i)
 
   fmt.Println("retrieved ref:", ref)
 
@@ -164,6 +184,22 @@ func testTimeIndex() {
   } else {
     fmt.Println("failured")
   }
-
 }
 
+func testBlobServer() {
+  fmt.Println("testing blob server:")
+  db, _ := blobdb.New(dbpath)
+
+  ind := index.NewTimeIndex()
+  for b := range db.Walk() {
+    ind.Notify(b)
+  }
+
+  bs := blobserver.BlobServer{Db: db}
+  bs.AddIndex("time-index", ind)
+  fmt.Println("starting http server...")
+  err := bs.ListenAndServe()
+  if err != nil {
+    fmt.Println(err)
+  }
+}

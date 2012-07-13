@@ -14,7 +14,7 @@ import (
 )
 
 const (
-  defaultDb = "./dbase"
+  defaultDb = "~/.rcas"
   defaultAddr = "0.0.0.0:8888"
   defaultReadTimeout = 10 * time.Second
   defaultWriteTimeout = 10 * time.Second
