@@ -18,16 +18,16 @@ var (
   HashCollideErr = errors.New("blobdb: blob hash collision")
 )
 
-type dbase struct {
+type Dbase struct {
   location string
 }
 
-func New(loc string) (db *dbase, err error) {
+func New(loc string) (db *Dbase, err error) {
   var mode os.FileMode = 0744
   if os.MkdirAll(loc, mode); err != nil {
     return nil, err
   }
-  return &dbase{location: loc}, nil
+  return &Dbase{location: loc}, nil
 }
 
 func blobRefParts(ref string) (hash crypto.Hash, sum string) {
@@ -39,7 +39,7 @@ func blobRefParts(ref string) (hash crypto.Hash, sum string) {
   return blob.NameToHash(parts[0]), parts[1]
 }
 
-func (db *dbase) Get(ref string) (b *blob.Blob, err error) {
+func (db *Dbase) Get(ref string) (b *blob.Blob, err error) {
   defer func() {
     if r := recover(); r != nil {
       err = r.(error)
@@ -66,7 +66,7 @@ func (db *dbase) Get(ref string) (b *blob.Blob, err error) {
   return b, nil
 }
 
-func (db *dbase) Put(blobs ...*blob.Blob) (err error) {
+func (db *Dbase) Put(blobs ...*blob.Blob) (err error) {
   // separate loop for error checking makes Puts all or nothing
   var dup error = nil
   for _, b := range blobs {
@@ -91,9 +91,9 @@ func (db *dbase) Put(blobs ...*blob.Blob) (err error) {
   return dup
 }
 
-// Walk traverses the dbase and returns each blob through the passed 
+// Walk traverses the Dbase and returns each blob through the passed 
 // channel. Runs in a self-dispatched goroutine
-func (db *dbase) Walk() chan *blob.Blob {
+func (db *Dbase) Walk() chan *blob.Blob {
   ch := make(chan *blob.Blob)
   fn := func(path string, info os.FileInfo, inerr error) error {
     if info.IsDir() {
@@ -116,7 +116,7 @@ func (db *dbase) Walk() chan *blob.Blob {
   return ch
 }
 
-func (db *dbase) writeBlob(b *blob.Blob) (err error) {
+func (db *Dbase) writeBlob(b *blob.Blob) (err error) {
   ref := b.Ref()
   p := path.Join(db.location, ref)
   f, err := os.Create(p)

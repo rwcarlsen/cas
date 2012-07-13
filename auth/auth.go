@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package auth
 
 import (
 	"encoding/base64"
@@ -84,4 +84,16 @@ func RequireAuth(handler func(conn http.ResponseWriter, req *http.Request)) func
 			SendUnauthorized(conn)
 		}
 	}
+}
+
+type Handler struct {
+  http.Handler
+}
+
+func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+  if mode.IsAuthorized(r) {
+    h.Handler.ServeHTTP(w, r)
+  } else {
+    SendUnauthorized(w)
+  }
 }

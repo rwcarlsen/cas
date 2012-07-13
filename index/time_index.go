@@ -6,11 +6,17 @@ import (
   "errors"
   "time"
   "sync"
+  "net/http"
 )
 
 var (
   IndexEndErr = errors.New("index: end of index")
 )
+
+type Index interface {
+  Notify(...*blob.Blob)
+  GetIter(r *http.Request) Iter
+}
 
 // Iter is used to walk through blob refs of an index.  
 //
@@ -75,56 +81,6 @@ func (ti *TimeIndex) RefAt(i int) string {
   return ti.entries[i].ref
 }
 
-// IterNew returns an iterator that starts from the most recent blob ref
-// working backward in time.
-func (ti *TimeIndex) IterNew() Iter {
-  return &backwardIter{
-    at: ti.Len() - 1,
-    ti: ti,
-  }
-}
-
-// IterOld returns an iterator that starts from the oldest blob ref working
-// forward in time.
-func (ti *TimeIndex) IterOld() Iter {
-  return &forwardIter{
-    at: 0,
-    ti: ti,
-  }
-}
-
-// IterAround returns an iterator that starts with the blob created around time t and
-// gradually walks outward alternating older-newer.
-func (ti *TimeIndex) IterAround(t time.Time) Iter {
-  i := ti.IndexNear(t)
-  return &splitIter{
-    high: i,
-    low: i + 1,
-    atTop: true,
-    ti: ti,
-  }
-}
-
-// IterForward returns an iterator that starts with the blob created around time t and
-// gradually walks forward in time toward more recent blobs.
-func (ti *TimeIndex) IterForward(t time.Time) Iter {
-  i := ti.IndexNear(t)
-  return &forwardIter{
-    at: i,
-    ti: ti,
-  }
-}
-
-// IterBackward returns an iterator that starts with a blob created around time t and
-// gradually walks backward in time toward older blobs.
-func (ti *TimeIndex) IterBackward(t time.Time) Iter {
-  i := ti.IndexNear(t)
-  return &backwardIter{
-    at: i,
-    ti: ti,
-  }
-}
-
 // IndexNear returns the index of the blob created closed to time t. The actual
 // blob ref can be retrieved by passing the index to RefAt.
 func (ti *TimeIndex) IndexNear(t time.Time) int {
@@ -145,6 +101,68 @@ func (ti *TimeIndex) IndexNear(t time.Time) int {
     pivot, done = split(down, up)
   }
   return pivot
+}
+
+// GetIter returns an iterator that walks the index according to the
+// description in the http request.
+func (ti *TimeIndex) GetIter(r *http.Request) Iter {
+  // decide how to config iter from request
+  // it := iterNew()
+  // it := iterOld()
+  // it := IterAround()
+  // it := IterForward()
+  // it := IterBackward()
+  return ti.iterNew()
+}
+
+// iterNew returns an iterator that starts from the most recent blob ref
+// working backward in time.
+func (ti *TimeIndex) iterNew() Iter {
+  return &backwardIter{
+    at: ti.Len() - 1,
+    ti: ti,
+  }
+}
+
+// iterOld returns an iterator that starts from the oldest blob ref working
+// forward in time.
+func (ti *TimeIndex) iterOld() Iter {
+  return &forwardIter{
+    at: 0,
+    ti: ti,
+  }
+}
+
+// iterAround returns an iterator that starts with the blob created around time t and
+// gradually walks outward alternating older-newer.
+func (ti *TimeIndex) iterAround(t time.Time) Iter {
+  i := ti.IndexNear(t)
+  return &splitIter{
+    high: i,
+    low: i + 1,
+    atTop: true,
+    ti: ti,
+  }
+}
+
+// iterForward returns an iterator that starts with the blob created around time t and
+// gradually walks forward in time toward more recent blobs.
+func (ti *TimeIndex) iterForward(t time.Time) Iter {
+  i := ti.IndexNear(t)
+  return &forwardIter{
+    at: i,
+    ti: ti,
+  }
+}
+
+// iterBackward returns an iterator that starts with a blob created around time t and
+// gradually walks backward in time toward older blobs.
+func (ti *TimeIndex) iterBackward(t time.Time) Iter {
+  i := ti.IndexNear(t)
+  return &backwardIter{
+    at: i,
+    ti: ti,
+  }
 }
 
 func split(prev, curr int) (next int, found bool) {
