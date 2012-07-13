@@ -9,7 +9,7 @@ import (
 )
 
 const (
-  defaultChunkSize = 1048576 // in bytes
+  DefaultChunkSize = 1048576 // in bytes
 )
 
 type FileMeta struct {
@@ -30,11 +30,6 @@ func NewFileMeta() *FileMeta {
   }
 }
 
-// AddContentRefs adds refs for blobs that constitute this file's bytes
-func (m *FileMeta) AddContentRefs(refs ...string) {
-  m.ContentRefs = append(m.ContentRefs, refs...)
-}
-
 // LoadFromPath fills in all meta fields (name, size, mod time, ...) by reading
 // the info from the file located at path. Blobs constituting the file's bytes
 // are returned. AddContentRefs is invoked for all the blobs returned.
@@ -50,7 +45,7 @@ func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
     return nil, err
   }
 
-  chunks = SplitRaw(data, defaultChunkSize)
+  chunks = SplitRaw(data, DefaultChunkSize)
 
   // fill in meta fields
   abs, _ := filepath.Abs(path)
@@ -63,7 +58,7 @@ func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
   m.Path = abs
   m.Size = stat.Size()
   m.ModTime = stat.ModTime().UTC()
-  m.AddContentRefs(RefsFor(chunks)...)
+  m.ContentRefs = RefsFor(chunks)
 
   return chunks, nil
 }

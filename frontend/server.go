@@ -6,6 +6,8 @@ import (
   "io"
   "io/ioutil"
   "fmt"
+  "bytes"
+  "net/url"
   "net/http"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
@@ -76,20 +78,20 @@ func putnote(w http.ResponseWriter, req *http.Request) {
   err = json.Unmarshal(body, &note)
   check(err)
 
-  meta := blob.NewMeta(blob.NoteKind)
-  for key, val := range meta {
-    note[key] = val
-  }
+  note["RcasType"] = blob.NoteType
 
-  b, err := note.ToBlob()
-  check(err)
-  err = db.Put(b)
+  b, err := blob.Marshal(note)
   check(err)
 
-  resp, err := json.MarshalIndent(note, "", "    ")
+  addr := hostURL(req).String()
+  resp, err := http.Post(addr, "application/octed-stream", bytes.NewBuffer(b.Content))
+  resp.Body.Close()
   check(err)
 
-  w.Write(resp)
+  respData, err := json.MarshalIndent(note, "", "    ")
+  check(err)
+
+  w.Write(respData)
 }
 
 func putfiles(w http.ResponseWriter, req *http.Request) {
@@ -98,7 +100,9 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
 	mr, err := req.MultipartReader()
   check(err)
 
-  resp := []interface{}{}
+  resps := []interface{}{}
+
+  addr := hostURL(req).String()
 
 	for part, err := mr.NextPart(); err == nil; {
 		if name := part.FormName(); name == "" {
@@ -107,57 +111,66 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
       continue
     }
     fmt.Println("handling file '" + part.FileName() + "'")
-    resp = append(resp, storeFileBlob(part))
+    resp := sendFileBlobs(part, addr)
+    resps = append(resps, resp)
 		part, err = mr.NextPart()
 	}
 
-  data, _ := json.Marshal(resp)
-  _, _ = w.Write(data)
+  data, _ := json.Marshal(resps)
+  w.Write(data)
 }
 
-func storeFileBlob(part *multipart.Part) (meta blob.MetaData) {
+func sendFileBlobs(part *multipart.Part, addr string) (respMeta blob.MetaData) {
+  meta := blob.NewFileMeta()
   defer func() {
-    delete(meta, "refs")
+    data, _ := json.Marshal(meta)
+    json.Unmarshal(data, &respMeta)
+    delete(respMeta, "ContentRefs")
+
     if r := recover(); r != nil {
-      meta["error"] = r.(error).Error()
+      respMeta["error"] = r.(error).Error()
     }
   }()
 
-  meta = blob.NewMeta(blob.FileKind)
-  meta["name"] = part.FileName()
+  meta.Name = part.FileName()
 
   data, err := ioutil.ReadAll(part)
   check(err)
 
-  meta["size"] = len(data)
+  meta.Size = int64(len(data))
 
   blobs := blob.SplitRaw(data, blob.DefaultChunkSize)
-  refs := blob.RefsFor(blobs)
-  meta.AttachRefs(refs...)
+  meta.ContentRefs = blob.RefsFor(blobs)
 
-  m, err := meta.ToBlob()
+  m, err := blob.Marshal(meta)
   check(err)
 
-  err = db.Put(m)
-  if err != blobdb.DupContentErr {
+  blobs = append(blobs, m)
+
+  for _, b := range blobs {
+    resp, err := http.Post(addr, "application/octed-stream",bytes.NewBuffer(b.Content))
+    resp.Body.Close()
     check(err)
   }
 
-  err = db.Put(blobs...)
-  check(err)
-
-  return
+  return respMeta
 }
 
 func get(w http.ResponseWriter, req *http.Request) {
   defer deferWrite(w)
 
-  ref, err := ioutil.ReadAll(req.Body)
+  addr := hostURL(req)
+  resp, err := http.Get(addr.String())
   check(err)
 
-  b, err := db.Get(string(ref))
+  _, err = io.Copy(w, resp.Body)
+  resp.Body.Close()
   check(err)
+}
 
-  w.Write(b.Content)
+func hostURL(r *http.Request) *url.URL {
+  err := r.ParseForm()
+  check(err)
+  return &url.URL{Host: r.Form.Get("BlobServerHost"), RawQuery: r.Form.Encode()}
 }
 

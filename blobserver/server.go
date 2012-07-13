@@ -15,10 +15,14 @@ import (
 
 const (
   defaultDb = "~/.rcas"
-  defaultAddr = "0.0.0.0:8888"
+  defaultAddr = "0.0.0.0:7777"
   defaultReadTimeout = 10 * time.Second
   defaultWriteTimeout = 10 * time.Second
   defaultHeaderMax = 1 << 20 // 1 Mb
+)
+
+const (
+  GetField = "ref"
 )
 
 var (
@@ -91,7 +95,7 @@ func (h *getHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
       w.Write(resp.Content)
     }
   }()
-  ref := req.FormValue("ref")
+  ref := req.FormValue(GetField)
 
   b, err := h.bs.Db.Get(ref)
   check(err)
