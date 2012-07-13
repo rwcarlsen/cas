@@ -130,6 +130,8 @@ func (h *putHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
   err = h.bs.Db.Put(b)
   check(err)
   h.bs.notify(b)
+
+  fmt.Println("successful post")
 }
 
 type indexHandler struct {

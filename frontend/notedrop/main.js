@@ -25,10 +25,11 @@ function submitNote(eventObj) {
   note.body = body
   data = JSON.stringify(note)
   //$.post("/cas/putnote", data, printResponse)
-  %.ajax({
+  $.ajax({
     url: "/cas/putnote",
+    type: "POST",
     data: data,
-    headers: {"BlobServerHost": host},
+    headers: {"Blob-Server-Host": host.toString()},
   }).done(printResponse)
 
 }

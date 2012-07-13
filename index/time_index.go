@@ -103,6 +103,13 @@ func (ti *TimeIndex) IndexNear(t time.Time) int {
   return pivot
 }
 
+func split(prev, curr int) (next int, found bool) {
+  if curr - prev <= 1 {
+    return prev, true
+  }
+  return (prev + curr) / 2, false
+}
+
 // GetIter returns an iterator that walks the index according to the
 // description in the http request.
 func (ti *TimeIndex) GetIter(r *http.Request) Iter {
@@ -163,13 +170,6 @@ func (ti *TimeIndex) iterBackward(t time.Time) Iter {
     at: i,
     ti: ti,
   }
-}
-
-func split(prev, curr int) (next int, found bool) {
-  if curr - prev <= 1 {
-    return prev, true
-  }
-  return (prev + curr) / 2, false
 }
 
 type forwardIter struct {

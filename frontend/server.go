@@ -83,9 +83,11 @@ func putnote(w http.ResponseWriter, req *http.Request) {
   b, err := blob.Marshal(note)
   check(err)
 
-  addr := hostURL(req).String()
-  resp, err := http.Post(addr, "application/octed-stream", bytes.NewBuffer(b.Content))
-  resp.Body.Close()
+  host := hostURL(req)
+  host.Path = "/put/"
+  fmt.Println("debug: ", req.Header)
+  fmt.Println("debug: ", host.String())
+  _, err = http.Post(host.String(), "application/octed-stream", bytes.NewBuffer(b.Content))
   check(err)
 
   respData, err := json.MarshalIndent(note, "", "    ")
@@ -102,7 +104,9 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
 
   resps := []interface{}{}
 
-  addr := hostURL(req).String()
+  host := hostURL(req)
+  host.Path = "/put/"
+  addr := host.String()
 
 	for part, err := mr.NextPart(); err == nil; {
 		if name := part.FormName(); name == "" {
@@ -160,6 +164,7 @@ func get(w http.ResponseWriter, req *http.Request) {
   defer deferWrite(w)
 
   addr := hostURL(req)
+  addr.Path = "/get/"
   resp, err := http.Get(addr.String())
   check(err)
 
@@ -171,6 +176,6 @@ func get(w http.ResponseWriter, req *http.Request) {
 func hostURL(r *http.Request) *url.URL {
   err := r.ParseForm()
   check(err)
-  return &url.URL{Host: r.Form.Get("BlobServerHost"), RawQuery: r.Form.Encode()}
+  return &url.URL{Host: r.Header.Get("Blob-Server-Host"), RawQuery: r.Form.Encode(), Scheme: "http"}
 }
 
