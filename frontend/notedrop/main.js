@@ -26,7 +26,7 @@ function submitNote(eventObj) {
   data = JSON.stringify(note)
   //$.post("/cas/putnote", data, printResponse)
   $.ajax({
-    url: "/cas/putnote",
+    url: "/putnote",
     type: "POST",
     data: data,
     headers: {"Blob-Server-Host": host.toString()},
@@ -37,7 +37,7 @@ function submitNote(eventObj) {
 function getData(eventObj) {
   box = $("#refbox")
   data = box.val()
-  $.post("/cas/get", data, printResponse)
+  $.post("/get", data, printResponse)
 }
 
 function printResponse(response) {

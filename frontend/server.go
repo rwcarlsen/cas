@@ -25,10 +25,9 @@ var (
 
 func main() {
   http.HandleFunc("/", staticHandler)
-
-  http.HandleFunc("/cas/get", get)
-  http.HandleFunc("/cas/putnote", putnote)
-  http.HandleFunc("/cas/putfiles/", putfiles)
+  http.HandleFunc("/get", get)
+  http.HandleFunc("/putnote", putnote)
+  http.HandleFunc("/putfiles/", putfiles)
 
   fmt.Println("Starting http server...")
   err := http.ListenAndServe("0.0.0.0:8888", nil)
@@ -43,18 +42,14 @@ func staticHandler(w http.ResponseWriter, r *http.Request) {
   defer deferWrite(w)
 
   pth := r.URL.Path[1:]
-  if pth == "cas/" {
+  if pth == "" {
     static("index.html", w)
-  } else if pth == "cas/file-upload" {
+  } else if pth == "file-upload" {
     static("fupload/index.html", w)
-  } else if pth == "cas/note-drop" {
+  } else if pth == "note-drop" {
     static("notedrop/index.html", w)
-  } else if pth == "favicon.ico" {
-    static(pth, w)
   } else {
-    if len(pth) > 4 {
-      static(pth[4:], w)
-    }
+    static(pth, w)
   }
 }
 
@@ -90,7 +85,7 @@ func putnote(w http.ResponseWriter, req *http.Request) {
   check(err)
   r.URL.Path = "/put/"
   setAuth(r)
-  resp, err := client.Do(r)
+  _, err = client.Do(r)
   check(err)
 
   buf := bytes.NewBuffer([]byte{})
@@ -105,7 +100,12 @@ func setAuth(r *http.Request) {
 }
 
 func hostString(r *http.Request) string {
-  u := &url.URL{Host: r.Header.Get("Blob-Server-Host"), Scheme: "http"}
+  h := r.Header.Get("Blob-Server-Host")
+  // stupid default blob server (temporary)
+  if h == "" {
+    h = "rwc-server.dyndns.org:7777"
+  }
+  u := &url.URL{Host: h, Scheme: "http"}
   return u.String()
 }
 
@@ -138,9 +138,9 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
 func sendFileBlobs(part *multipart.Part, host string) (respMeta blob.MetaData) {
   meta := blob.NewFileMeta()
   defer func() {
-    data, _ := json.Marshal(meta)
-    json.Unmarshal(data, &respMeta)
-    delete(respMeta, "ContentRefs")
+    respMeta = make(blob.MetaData)
+    respMeta["name"] = meta.Name
+    respMeta["size"] = meta.Size
 
     if r := recover(); r != nil {
       respMeta["error"] = r.(error).Error()
