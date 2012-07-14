@@ -72,12 +72,20 @@ func (bs *BlobServer) ListenAndServe() error {
     }
   }
 
+  http.Handle("/", &defHandler{})
   http.Handle("/get/", auth.Handler{&getHandler{bs: bs}})
   http.Handle("/put/", auth.Handler{&putHandler{bs: bs}})
   http.Handle("/index/", auth.Handler{&indexHandler{bs: bs}})
   http.Handle("/share/", &shareHandler{bs: bs})
 
   return bs.Serv.ListenAndServe()
+}
+
+type defHandler struct {}
+
+func (h *defHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+  fmt.Println(req)
+  w.Write([]byte("Page doesn't exist"))
 }
 
 type getHandler struct {

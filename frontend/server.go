@@ -83,17 +83,30 @@ func putnote(w http.ResponseWriter, req *http.Request) {
   b, err := blob.Marshal(note)
   check(err)
 
-  host := hostURL(req)
-  host.Path = "/put/"
-  fmt.Println("debug: ", req.Header)
-  fmt.Println("debug: ", host.String())
-  _, err = http.Post(host.String(), "application/octed-stream", bytes.NewBuffer(b.Content))
+  // build and send request to blobserver
+  host := hostString(req)
+  client := &http.Client{}
+  r, err := http.NewRequest("POST", host, bytes.NewBuffer(b.Content))
+  check(err)
+  r.URL.Path = "/put/"
+  setAuth(r)
+  resp, err := client.Do(r)
   check(err)
 
-  respData, err := json.MarshalIndent(note, "", "    ")
+  buf := bytes.NewBuffer([]byte{})
+  err = json.Indent(buf, b.Content, "", "    ")
   check(err)
 
-  w.Write(respData)
+  w.Write(buf.Bytes())
+}
+
+func setAuth(r *http.Request) {
+  r.SetBasicAuth("robert", "password")
+}
+
+func hostString(r *http.Request) string {
+  u := &url.URL{Host: r.Header.Get("Blob-Server-Host"), Scheme: "http"}
+  return u.String()
 }
 
 func putfiles(w http.ResponseWriter, req *http.Request) {
@@ -104,9 +117,7 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
 
   resps := []interface{}{}
 
-  host := hostURL(req)
-  host.Path = "/put/"
-  addr := host.String()
+  host := hostString(req)
 
 	for part, err := mr.NextPart(); err == nil; {
 		if name := part.FormName(); name == "" {
@@ -115,7 +126,7 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
       continue
     }
     fmt.Println("handling file '" + part.FileName() + "'")
-    resp := sendFileBlobs(part, addr)
+    resp := sendFileBlobs(part, host)
     resps = append(resps, resp)
 		part, err = mr.NextPart()
 	}
@@ -124,7 +135,7 @@ func putfiles(w http.ResponseWriter, req *http.Request) {
   w.Write(data)
 }
 
-func sendFileBlobs(part *multipart.Part, addr string) (respMeta blob.MetaData) {
+func sendFileBlobs(part *multipart.Part, host string) (respMeta blob.MetaData) {
   meta := blob.NewFileMeta()
   defer func() {
     data, _ := json.Marshal(meta)
@@ -151,9 +162,13 @@ func sendFileBlobs(part *multipart.Part, addr string) (respMeta blob.MetaData) {
 
   blobs = append(blobs, m)
 
+  client := &http.Client{}
   for _, b := range blobs {
-    resp, err := http.Post(addr, "application/octed-stream",bytes.NewBuffer(b.Content))
-    resp.Body.Close()
+    r, err := http.NewRequest("POST", host, bytes.NewBuffer(b.Content))
+    check(err)
+    r.URL.Path = "/put/"
+    setAuth(r)
+    _, err = client.Do(r)
     check(err)
   }
 
@@ -163,19 +178,21 @@ func sendFileBlobs(part *multipart.Part, addr string) (respMeta blob.MetaData) {
 func get(w http.ResponseWriter, req *http.Request) {
   defer deferWrite(w)
 
-  addr := hostURL(req)
-  addr.Path = "/get/"
-  resp, err := http.Get(addr.String())
+  // build and send request to blobserver
+  host := hostString(req)
+  client := &http.Client{}
+  r, err := http.NewRequest("GET", host, nil)
+  check(err)
+  r.URL.Path = "/get/"
+  err = req.ParseForm()
+  check(err)
+  r.Form = req.Form
+  setAuth(r)
+  resp, err := client.Do(r)
   check(err)
 
   _, err = io.Copy(w, resp.Body)
   resp.Body.Close()
   check(err)
-}
-
-func hostURL(r *http.Request) *url.URL {
-  err := r.ParseForm()
-  check(err)
-  return &url.URL{Host: r.Header.Get("Blob-Server-Host"), RawQuery: r.Form.Encode(), Scheme: "http"}
 }
 
