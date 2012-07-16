@@ -16,8 +16,8 @@ import (
 const (
   defaultDb = "~/.rcas"
   defaultAddr = "0.0.0.0:7777"
-  defaultReadTimeout = 10 * time.Second
-  defaultWriteTimeout = 10 * time.Second
+  defaultReadTimeout = 60 * time.Second
+  defaultWriteTimeout = 60 * time.Second
   defaultHeaderMax = 1 << 20 // 1 Mb
 )
 

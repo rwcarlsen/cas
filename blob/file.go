@@ -9,7 +9,7 @@ import (
 )
 
 const (
-  DefaultChunkSize = 1048576 // in bytes
+  DefaultChunkSize = 1 << 30 // 1 Gb
 )
 
 type FileMeta struct {
