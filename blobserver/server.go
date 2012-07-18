@@ -11,6 +11,7 @@ import (
   "github.com/rwcarlsen/cas/blobdb"
   "github.com/rwcarlsen/cas/index"
   "github.com/rwcarlsen/cas/auth"
+  "github.com/rwcarlsen/cas/util"
 )
 
 const (
@@ -22,7 +23,13 @@ const (
 )
 
 const (
-  GetField = "ref"
+  ActionStatus = "Action-Status"
+  ActionFailed = "blob get/put failed"
+  ActionSuccess = "blob get/put succeeded"
+)
+
+const (
+  GetField = "Blob-Ref"
 )
 
 var (
@@ -95,20 +102,18 @@ type getHandler struct {
 func (h *getHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
   defer func() {
     if r := recover(); r != nil {
-      fmt.Println(r)
-      msg := "blob retrieval failed: " + r.(error).Error()
-      m := make(blob.MetaData)
-      m["message"] = msg
-      resp, _ := blob.Marshal(m)
-      w.Write(resp.Content)
+      w.Header().Set(ActionStatus, ActionFailed)
+      fmt.Println("blob post failed: ", r)
     }
   }()
   ref := req.FormValue(GetField)
 
   b, err := h.bs.Db.Get(ref)
-  check(err)
+  util.Check(err)
 
+  w.Header().Set(ActionStatus, ActionSuccess)
   w.Write(b.Content)
+  fmt.Println("successful retrieval")
 }
 
 type putHandler struct {
@@ -116,29 +121,22 @@ type putHandler struct {
 }
 
 func (h *putHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-  m := make(blob.MetaData)
   defer func() {
-    msg := "blob posted sucessfully"
     if r := recover(); r != nil {
-      fmt.Println(r)
-      msg = "blob post failed: " + r.(error).Error()
+      w.Header().Set(ActionStatus, ActionFailed)
+      fmt.Println("blob post failed: ", r)
     }
-
-    m["message"] = msg
-    resp, _ := blob.Marshal(m)
-    w.Write(resp.Content)
   }()
 
   body, err := ioutil.ReadAll(req.Body)
-  check(err)
+  util.Check(err)
 
   b := blob.NewRaw(body)
-  m["blob-ref"] = b.Ref()
-
   err = h.bs.Db.Put(b)
-  check(err)
+  util.Check(err)
   h.bs.notify(b)
 
+  w.Header().Set(ActionStatus, ActionSuccess)
   fmt.Println("successful post")
 }
 
@@ -147,7 +145,7 @@ type indexHandler struct {
 }
 
 func (h *indexHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-  defer deferWrite(w)
+  defer util.DeferWrite(w)
 
   //qname := req.FormValue("query")
 
@@ -174,11 +172,11 @@ func (h *shareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
   ref := req.FormValue("ref")
   b, err := h.bs.Db.Get(ref)
-  check(err)
+  util.Check(err)
 
   //m := make(blob.MetaData)
   //m, err := blob.Unmarshal(b, &m)
-  //check(err)
+  //util.Check(err)
 
   //tpe, ok := m[blob.TypeField]
   //if !ok {
