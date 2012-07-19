@@ -36,12 +36,18 @@ func main() {
 func handler(w http.ResponseWriter, r *http.Request) {
   defer util.DeferWrite(w)
 
-  pth := r.URL.Path
-  if pth == "/" {
-    util.LoadStatic("index.html", w)
+  pth := strings.Trim(r.URL.Path, "/")
+  base := strings.Split(pth, "/")[0]
+
+  if base == "" {
+    err := util.LoadStatic("index.html", w)
+    util.Check(err)
+  } else if _, ok := handlers[base]; ok {
+    handlers[base](defaultContext, w, r)
   } else {
-    name := strings.Split(pth, "/")[1]
-    handlers[name](defaultContext, w, r)
+    fmt.Println("loading static file", pth)
+    err := util.LoadStatic(pth, w)
+    util.Check(err)
   }
 }
 

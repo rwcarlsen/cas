@@ -3,6 +3,7 @@ package fupload
 
 import (
   "fmt"
+  "strings"
   "io/ioutil"
   "net/http"
   "encoding/json"
@@ -15,13 +16,15 @@ import (
 func Handle(cx *app.Context, w http.ResponseWriter, r *http.Request) {
   defer util.DeferWrite(w)
 
-  pth := r.URL.Path
-  if pth == "/fupload/" {
-    util.LoadStatic("fupload/index.html", w)
-  } else if pth == "/fupload/putfiles" {
+  pth := strings.Trim(r.URL.Path, "/")
+  if pth == "fupload" {
+    err := util.LoadStatic("fupload/index.html", w)
+    util.Check(err)
+  } else if pth == "fupload/putfiles" {
     putfiles(cx, w, r)
   } else {
-    util.LoadStatic(pth, w)
+    err := util.LoadStatic(pth, w)
+    util.Check(err)
   }
 }
 

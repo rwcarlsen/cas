@@ -8,12 +8,10 @@ function initHandlers() {
 }
 
 function submitNote(eventObj) {
-  hostbox = $("#host-box")
   metabox = $("#meta-box")
   bodybox = $("#body-box")
   meta = metabox.val()
   body = bodybox.val()
-  host = hostbox.val()
 
   try {
     note = jQuery.parseJSON("{" + meta + "}");
@@ -24,14 +22,7 @@ function submitNote(eventObj) {
 
   note.body = body
   data = JSON.stringify(note)
-  //$.post("/cas/putnote", data, printResponse)
-  $.ajax({
-    url: "/putnote",
-    type: "POST",
-    data: data,
-    headers: {"Blob-Server-Host": host.toString()},
-  }).done(printResponse)
-
+  $.post("/notedrop/putnote", data, printResponse)
 }
 
 function getData(eventObj) {

@@ -45,13 +45,15 @@ func ContentType(pth string, f *os.File) (ctype string) {
   return
 }
 
-func LoadStatic(pth string, w http.ResponseWriter) {
+func LoadStatic(pth string, w http.ResponseWriter) error {
   f, err := os.Open(pth)
-  Check(err)
+  if err != nil {
+    return err
+  }
 
   w.Header().Set("Content-Type", ContentType(pth, f))
 
   _, err = io.Copy(w, f)
-  Check(err)
+  return err
 }
 
