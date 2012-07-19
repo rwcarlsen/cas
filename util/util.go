@@ -1,33 +1,34 @@
 
-package main
+package util
 
 import (
   "os"
   "net/http"
   "fmt"
   "path"
+  "io"
 )
 
-func deferPrint() {
+func DeferPrint() {
   if r := recover(); r != nil {
     fmt.Println(r)
   }
 }
 
-func deferWrite(w http.ResponseWriter) {
+func DeferWrite(w http.ResponseWriter) {
   if r := recover(); r != nil {
     fmt.Println(r)
     w.Write([]byte(r.(error).Error()))
   }
 }
 
-func check(err error) {
+func Check(err error) {
   if err != nil {
     panic(err)
   }
 }
 
-func contentType(pth string, f *os.File) (ctype string) {
+func ContentType(pth string, f *os.File) (ctype string) {
   ext := path.Ext(pth)
   if ext == ".js" {
     ctype = "text/javascript"
@@ -36,11 +37,23 @@ func contentType(pth string, f *os.File) (ctype string) {
   } else {
     data := make([]byte, 512)
     _, err := f.Read(data)
-    check(err)
+    Check(err)
     ctype = http.DetectContentType(data)
     _, err = f.Seek(0, 0)
-    check(err)
+    Check(err)
   }
   return
+}
+
+func LoadStatic(pth string, w http.ResponseWriter) error {
+  f, err := os.Open(pth)
+  if err != nil {
+    return err
+  }
+
+  w.Header().Set("Content-Type", ContentType(pth, f))
+
+  _, err = io.Copy(w, f)
+  return err
 }
 
