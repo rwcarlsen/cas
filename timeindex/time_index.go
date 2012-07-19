@@ -1,30 +1,31 @@
 
-package index
+package timeindex
 
 import (
-  "github.com/rwcarlsen/cas/blob"
+  "io/ioutil"
+  "encoding/json"
   "errors"
   "time"
   "sync"
   "net/http"
+  "github.com/rwcarlsen/cas/blob"
+  "github.com/rwcarlsen/cas/index"
 )
 
-var (
-  IndexEndErr = errors.New("index: end of index")
+type Direc int
+
+const (
+  Backward Direc = iota
+  Forward
+  Alternating
 )
 
-type Index interface {
-  Notify(...*blob.Blob)
-  GetIter(r *http.Request) Iter
-}
+const MaxBlobSize = 1 << 22
 
-// Iter is used to walk through blob refs of an index.  
-//
-// When there are no more blobs to iterate over, Next returns an empty string
-// along with IndexEndErr
-type Iter interface {
-  Next() (string, error)
-  SkipN(n int)
+type Request struct {
+  Time time.Time
+  Dir Direc
+  SkipN int
 }
 
 type timeEntry struct {
@@ -38,7 +39,7 @@ type TimeIndex struct {
   lock sync.RWMutex
 }
 
-func NewTimeIndex() *TimeIndex {
+func New() *TimeIndex {
   return &TimeIndex{
     entries: make([]*timeEntry, 0),
   }
@@ -46,14 +47,26 @@ func NewTimeIndex() *TimeIndex {
 
 // Notify adds additional blob refs (and their timestamps) to the chronological
 // index.
+//
+//Blobs larger than MaxBlobSize and non-json encoded blobs are ignored
+// by TimeIndex
 func (ti *TimeIndex) Notify(blobs ...*blob.Blob) {
   ti.lock.Lock()
   defer ti.lock.Unlock()
 
   var t time.Time
   for _, b := range blobs {
+    if len(b.Content) > MaxBlobSize {
+      continue
+    }
+
+    err := json.Unmarshal(b.Content, &blob.MetaData{})
+    if err != nil {
+      continue
+    }
+
     m := make(blob.MetaData)
-    err := blob.Unmarshal(b, &m)
+    err = blob.Unmarshal(b, &m)
     if err != nil {
       t = time.Now()
     } else {
@@ -65,6 +78,33 @@ func (ti *TimeIndex) Notify(blobs ...*blob.Blob) {
 
     ti.entries = append(ti.entries, &timeEntry{tm: t, ref: b.Ref()})
   }
+}
+
+// GetIter returns an iterator that walks the index according to the
+// description in the http request.
+func (ti *TimeIndex) GetIter(req *http.Request) (it index.Iter,  err error) {
+  data, err := ioutil.ReadAll(req.Body)
+  if err != nil {
+    return nil, errors.New("timeindex: badly formed query request")
+  }
+
+  var r Request
+  err = json.Unmarshal(data, &r)
+  if err != nil {
+    return nil, errors.New("timeindex: badly formed query request")
+  }
+
+  switch r.Dir {
+    case Forward:
+      it = ti.iterForward(r.Time)
+    case Backward:
+      it = ti.iterBackward(r.Time)
+    case Alternating:
+      it = ti.iterAround(r.Time)
+  }
+
+  it.SkipN(r.SkipN)
+  return it, nil
 }
 
 // Len returns the number of blob refs in the index.
@@ -110,21 +150,9 @@ func split(prev, curr int) (next int, found bool) {
   return (prev + curr) / 2, false
 }
 
-// GetIter returns an iterator that walks the index according to the
-// description in the http request.
-func (ti *TimeIndex) GetIter(r *http.Request) Iter {
-  // decide how to config iter from request
-  // it := iterNew()
-  // it := iterOld()
-  // it := IterAround()
-  // it := IterForward()
-  // it := IterBackward()
-  return ti.iterNew()
-}
-
 // iterNew returns an iterator that starts from the most recent blob ref
 // working backward in time.
-func (ti *TimeIndex) iterNew() Iter {
+func (ti *TimeIndex) iterNew() index.Iter {
   return &backwardIter{
     at: ti.Len() - 1,
     ti: ti,
@@ -133,7 +161,7 @@ func (ti *TimeIndex) iterNew() Iter {
 
 // iterOld returns an iterator that starts from the oldest blob ref working
 // forward in time.
-func (ti *TimeIndex) iterOld() Iter {
+func (ti *TimeIndex) iterOld() index.Iter {
   return &forwardIter{
     at: 0,
     ti: ti,
@@ -142,7 +170,7 @@ func (ti *TimeIndex) iterOld() Iter {
 
 // iterAround returns an iterator that starts with the blob created around time t and
 // gradually walks outward alternating older-newer.
-func (ti *TimeIndex) iterAround(t time.Time) Iter {
+func (ti *TimeIndex) iterAround(t time.Time) index.Iter {
   i := ti.IndexNear(t)
   return &splitIter{
     high: i,
@@ -154,7 +182,7 @@ func (ti *TimeIndex) iterAround(t time.Time) Iter {
 
 // iterForward returns an iterator that starts with the blob created around time t and
 // gradually walks forward in time toward more recent blobs.
-func (ti *TimeIndex) iterForward(t time.Time) Iter {
+func (ti *TimeIndex) iterForward(t time.Time) index.Iter {
   i := ti.IndexNear(t)
   return &forwardIter{
     at: i,
@@ -164,7 +192,7 @@ func (ti *TimeIndex) iterForward(t time.Time) Iter {
 
 // iterBackward returns an iterator that starts with a blob created around time t and
 // gradually walks backward in time toward older blobs.
-func (ti *TimeIndex) iterBackward(t time.Time) Iter {
+func (ti *TimeIndex) iterBackward(t time.Time) index.Iter {
   i := ti.IndexNear(t)
   return &backwardIter{
     at: i,
@@ -182,7 +210,7 @@ func (it *forwardIter) Next() (ref string, err error) {
     it.at++
     return it.ti.RefAt(it.at - 1), nil
   }
-  return "", IndexEndErr
+  return "", index.IndexEndErr
 }
 
 func (it *forwardIter) SkipN(n int) {
@@ -195,11 +223,11 @@ type backwardIter struct {
 }
 
 func (it *backwardIter) Next() (ref string, err error) {
-  if it.at >= 0 {
+  if it.at >= 0 && it.at < it.ti.Len() {
     it.at--
     return it.ti.RefAt(it.at + 1), nil
   }
-  return "", IndexEndErr
+  return "", index.IndexEndErr
 }
 
 func (it *backwardIter) SkipN(n int) {
@@ -245,7 +273,7 @@ func (it *splitIter) next() (i int, err error) {
     it.low--
   } else {
     // both out of bounds
-    return 0, IndexEndErr
+    return 0, index.IndexEndErr
   }
   return i, nil
 }

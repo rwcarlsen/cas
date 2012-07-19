@@ -4,9 +4,11 @@ package blobserver
 import (
   "fmt"
   "time"
+  "strconv"
   "io/ioutil"
   "errors"
   "net/http"
+  "mime/multipart"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
   "github.com/rwcarlsen/cas/index"
@@ -30,6 +32,9 @@ const (
 
 const (
   GetField = "Blob-Ref"
+  IndexField = "Index-Name"
+  ResultCountField = "Num-Index-Results"
+  BoundaryField = "Blob-Boundary"
 )
 
 var (
@@ -145,13 +150,45 @@ type indexHandler struct {
 }
 
 func (h *indexHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-  defer util.DeferWrite(w)
+  //defer func() {
+  //  if r := recover(); r != nil {
+  //    w.Header().Set(ActionStatus, ActionFailed)
+  //    fmt.Println("index access failed: ", r)
+  //  }
+  //}()
 
-  //qname := req.FormValue("query")
+  name := req.Header.Get(IndexField)
+  fmt.Println("looking for index", name)
 
-  // retrieve query results
+  ind, ok := h.bs.inds[name]
+  if !ok {
+    panic("invalid index name")
+  }
 
-  //w.Write(results)
+  it, err := ind.GetIter(req)
+  util.Check(err)
+
+  n, err := strconv.Atoi(req.Header.Get(ResultCountField))
+  util.Check(err)
+
+  refs := multipart.NewWriter(w)
+  w.Header().Set("Content-Type", "multipart/mixed; boundary=" + refs.Boundary() )
+  w.Header().Set(BoundaryField, refs.Boundary() )
+
+  defer refs.Close()
+  for i := 0; i < n; i++ {
+    ref, err := it.Next()
+    if err != nil {
+      break
+    }
+
+    b, err := h.bs.Db.Get(ref)
+    util.Check(err)
+
+    part, err := refs.CreateFormFile("blob-ref", ref)
+    util.Check(err)
+    part.Write(b.Content)
+  }
 }
 
 type shareHandler struct {

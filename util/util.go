@@ -28,10 +28,14 @@ func Check(err error) {
   }
 }
 
-func ContentType(pth string, f *os.File) (ctype string) {
-  ext := path.Ext(pth)
+func ContentType(f *os.File) (ctype string) {
+  ext := path.Ext(f.Name())
   if ext == ".js" {
     ctype = "text/javascript"
+  } else if ext == ".html" {
+    ctype = "text/html"
+  } else if ext == ".htm" {
+    ctype = "text/html"
   } else if ext == ".css" {
     ctype = "text/css"
   } else {
@@ -51,7 +55,7 @@ func LoadStatic(pth string, w http.ResponseWriter) error {
     return err
   }
 
-  w.Header().Set("Content-Type", ContentType(pth, f))
+  w.Header().Set("Content-Type", ContentType(f))
 
   _, err = io.Copy(w, f)
   return err
