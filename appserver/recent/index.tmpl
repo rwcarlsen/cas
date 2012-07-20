@@ -1,12 +1,11 @@
+<!DOCTYPE html>
 
 {{define "recent"}}
   {{range $index, $blob := .}}
-    {{$index}}. <a onclick="toggleContent({{$blob.Ref}})">{{$blob.Ref}}</p><br>
-    <p class="invisible" id="{{$blob.Ref}}">{{$blob.Content}}</p><br>
+    <a class="pretty" onclick="toggleContent({{$blob.Ref}})">{{$index}}. {{$blob.Ref}}</a>
+    <code id="{{$blob.Ref}}">{{html $blob.Content}}</code><br>
   {{end}}
 {{end}}
-
-<!DOCTYPE html>
 
 <html>
   <head>
@@ -25,14 +24,8 @@
     </div>
 
     <div class="row">
-      <div class="column grid_2">
-        {{template "recent"}}
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="column grid_10" id="blob-view">
-      
+      <div class="column grid_12">
+        {{template "recent" .}}
       </div>
     </div>
 

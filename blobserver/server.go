@@ -158,8 +158,6 @@ func (h *indexHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
   }()
 
   name := req.Header.Get(IndexField)
-  fmt.Println("looking for index", name)
-
   ind, ok := h.bs.inds[name]
   if !ok {
     panic("invalid index name")

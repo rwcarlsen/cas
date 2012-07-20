@@ -2,14 +2,15 @@
 package recent
 
 import (
+  "bytes"
+  "time"
   "strings"
-  "io/ioutil"
   "net/http"
   "encoding/json"
   "html/template"
-  "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/app"
+  "github.com/rwcarlsen/cas/timeindex"
 )
 
 var tmpl *template.Template
@@ -23,19 +24,20 @@ func Handle(cx *app.Context, w http.ResponseWriter, r *http.Request) {
   pth := strings.Trim(r.URL.Path, "/")
   if pth == "recent" {
     data := stripBlobs(cx)
-    tmpl.Execute(w, data)
+    err := tmpl.Execute(w, data)
+    util.Check(err)
   } else {
     err := util.LoadStatic(pth, w)
     util.Check(err)
   }
 }
 
-type blob struct {
+type shortblob struct {
   Ref string
   Content string
 }
 
-func stripBlobs(cx *app.Context) []*blob {
+func stripBlobs(cx *app.Context) []*shortblob {
   indReq := timeindex.Request{
     Time: time.Now(),
     Dir:timeindex.Backward,
@@ -43,34 +45,13 @@ func stripBlobs(cx *app.Context) []*blob {
   blobs, err := cx.IndexBlobs("time", 20, indReq)
   util.Check(err)
 
-  short := []*blob{}
-  for _, b := blobs {
+  short := []*shortblob{}
+  for _, b := range blobs {
     buf := bytes.NewBuffer([]byte{})
     json.Indent(buf, b.Content, "", "    ")
-    content := template.HTMLEscapeString(buf.String())
-    short = append(short, &blob{b.Ref(), content})
+    short = append(short, &shortblob{b.Ref(), buf.String()})
   }
 
   return short
 }
 
-func putnote(cx *app.Context, w http.ResponseWriter, req *http.Request) {
-  defer util.DeferWrite(w)
-
-  body, err := ioutil.ReadAll(req.Body)
-  util.Check(err)
-
-  var note blob.MetaData
-  err = json.Unmarshal(body, &note)
-  util.Check(err)
-
-  note["RcasType"] = blob.NoteType
-
-  b, err := blob.Marshal(note)
-  util.Check(err)
-
-  err = cx.PutBlob(b)
-  util.Check(err)
-
-  w.Write(b.Content)
-}

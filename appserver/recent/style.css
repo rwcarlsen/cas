@@ -1,4 +1,13 @@
 
-.invisible {
-  visibility:hidden;
+code {
+  display: none;
+  white-space: pre;
 }
+
+.pretty {
+  color: blue;
+  font-weight: bold;
+  font-size: 125%;
+  cursor: pointer;
+}
+
