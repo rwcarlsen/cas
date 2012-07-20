@@ -11,23 +11,26 @@ import (
   "github.com/rwcarlsen/cas/app"
   "github.com/rwcarlsen/cas/appserver/notedrop"
   "github.com/rwcarlsen/cas/appserver/fupload"
+  "github.com/rwcarlsen/cas/appserver/recent"
 )
 
+const tmplDir = "templates"
 var defaultContext *app.Context = &app.Context{"http://rwc-server.dyndns.org:7777", "robert", "password"}
 
-var handlers map[string]app.HandleFunc
-
-// add new apps by listing them here in this init func
+//// add new apps by listing them here in this init func
 func init() {
   handlers = map[string]app.HandleFunc{}
   handlers["notedrop"] = notedrop.Handle
   handlers["fupload"] = fupload.Handle
+  handlers["recent"] = recent.Handle
 }
 
+var handlers map[string]app.HandleFunc
 var tmpl *template.Template
 var applist []string
 func init() {
-  tmpl = template.Must(template.ParseFiles("index.tmpl", "applinks.tmpl"))
+  tmpl = template.Must(template.ParseFiles("index.tmpl"))
+  _ = template.Must(tmpl.ParseGlob(tmplDir + "/*.tmpl"))
 
   applist = make([]string, 0)
   for name, _ := range handlers {
