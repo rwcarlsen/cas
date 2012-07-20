@@ -100,7 +100,7 @@ func (db *Dbase) Walk() chan *blob.Blob {
       return nil
     }
 
-    b, err := db.Get(path)
+    b, err := db.Get(info.Name())
     if err != nil {
       return nil
     }

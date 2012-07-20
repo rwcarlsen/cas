@@ -9,6 +9,8 @@ import (
   "github.com/rwcarlsen/cas/app"
   "github.com/rwcarlsen/cas/appserver/notedrop"
   "github.com/rwcarlsen/cas/appserver/fupload"
+  "github.com/rwcarlsen/cas/timeindex"
+  "time"
 )
 
 var defaultContext *app.Context = &app.Context{"http://rwc-server.dyndns.org:7777", "robert", "password"}
@@ -25,7 +27,7 @@ func main() {
   http.HandleFunc("/", handler)
 
   fmt.Println("Starting http server...")
-  err := http.ListenAndServe("0.0.0.0:8888", nil)
+  err = http.ListenAndServe("0.0.0.0:8888", nil)
 
   if err != nil {
     fmt.Println(err)

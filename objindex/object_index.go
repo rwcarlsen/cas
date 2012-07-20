@@ -1,5 +1,5 @@
 
-package index
+package objindex
 
 type ObjectIndex struct {
 

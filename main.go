@@ -9,7 +9,7 @@ import (
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
   "github.com/rwcarlsen/cas/blobserver"
-  "github.com/rwcarlsen/cas/index"
+  "github.com/rwcarlsen/cas/timeindex"
 )
 
 var (
@@ -22,9 +22,9 @@ var (
 
 
 func main() {
-  testRaw()
-  testFile()
-  testDir()
+  //testRaw()
+  //testFile()
+  //testDir()
   //testQuery()
   //testTimeIndex()
   testBlobServer()
@@ -143,7 +143,7 @@ func testQuery() {
 }
 
 func testTimeIndex() {
-  ti := index.NewTimeIndex()
+  ti := timeindex.New()
 
   m1 := make(blob.MetaData)
   m2 := make(blob.MetaData)
@@ -190,13 +190,15 @@ func testBlobServer() {
   fmt.Println("testing blob server:")
   db, _ := blobdb.New(dbpath)
 
-  ind := index.NewTimeIndex()
+  ind := timeindex.New()
+  fmt.Println("walking db")
   for b := range db.Walk() {
     ind.Notify(b)
   }
+  fmt.Println("done walking")
 
   bs := blobserver.BlobServer{Db: db}
-  bs.AddIndex("time-index", ind)
+  bs.AddIndex("time", ind)
   fmt.Println("starting http server...")
   err := bs.ListenAndServe()
   if err != nil {
