@@ -3,6 +3,7 @@ package main
 
 import (
   "fmt"
+  "sort"
   "time"
   "os"
   "path/filepath"
@@ -195,6 +196,7 @@ func testBlobServer() {
   for b := range db.Walk() {
     ind.Notify(b)
   }
+  sort.Sort(ind)
   fmt.Println("done walking")
 
   bs := blobserver.BlobServer{Db: db}

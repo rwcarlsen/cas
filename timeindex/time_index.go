@@ -60,24 +60,27 @@ func (ti *TimeIndex) Notify(blobs ...*blob.Blob) {
       continue
     }
 
-    err := json.Unmarshal(b.Content, &blob.MetaData{})
+    m := make(blob.MetaData)
+    err := blob.Unmarshal(b, &m)
     if err != nil {
       continue
     }
 
-    m := make(blob.MetaData)
-    err = blob.Unmarshal(b, &m)
+    t, err = time.Parse(blob.TimeFormat, m[blob.TimeField].(string))
     if err != nil {
       t = time.Now()
-    } else {
-      t, err = time.Parse(blob.TimeFormat, m[blob.TimeField].(string))
-      if err != nil {
-        t = time.Now()
-      }
     }
 
     ti.entries = append(ti.entries, &timeEntry{tm: t, ref: b.Ref()})
   }
+}
+
+func (ti *TimeIndex) Swap(i, j int) {
+  ti.entries[i], ti.entries[j] = ti.entries[j], ti.entries[i]
+}
+
+func (ti *TimeIndex) Less(i, j int) bool {
+  return time.Since(ti.entries[i].tm) > time.Since(ti.entries[j].tm)
 }
 
 // GetIter returns an iterator that walks the index according to the
@@ -140,7 +143,15 @@ func (ti *TimeIndex) IndexNear(t time.Time) int {
 
     pivot, done = split(down, up)
   }
-  return pivot
+
+  lowt := ti.entries[down].tm
+  upt := ti.entries[up].tm
+  lowdiff := int64(time.Since(lowt)) - int64(time.Since(t))
+  updiff := int64(time.Since(t)) - int64(time.Since(upt))
+  if updiff < lowdiff {
+    return up
+  }
+  return down
 }
 
 func split(prev, curr int) (next int, found bool) {
@@ -148,24 +159,6 @@ func split(prev, curr int) (next int, found bool) {
     return prev, true
   }
   return (prev + curr) / 2, false
-}
-
-// iterNew returns an iterator that starts from the most recent blob ref
-// working backward in time.
-func (ti *TimeIndex) iterNew() index.Iter {
-  return &backwardIter{
-    at: ti.Len() - 1,
-    ti: ti,
-  }
-}
-
-// iterOld returns an iterator that starts from the oldest blob ref working
-// forward in time.
-func (ti *TimeIndex) iterOld() index.Iter {
-  return &forwardIter{
-    at: 0,
-    ti: ti,
-  }
 }
 
 // iterAround returns an iterator that starts with the blob created around time t and
