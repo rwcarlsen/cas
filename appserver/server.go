@@ -26,18 +26,6 @@ func init() {
 func main() {
   http.HandleFunc("/", handler)
 
-  // debug debug
-  blobs, err := defaultContext.IndexBlobs("time", 10, timeindex.Request{time.Now(), timeindex.Backward, 0})
-  if err != nil {
-    fmt.Println(err)
-    return
-  }
-
-  for _, b := range blobs {
-    fmt.Println(b)
-  }
-  // end debug debug
-
   fmt.Println("Starting http server...")
   err = http.ListenAndServe("0.0.0.0:8888", nil)
 

@@ -150,12 +150,12 @@ type indexHandler struct {
 }
 
 func (h *indexHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-  //defer func() {
-  //  if r := recover(); r != nil {
-  //    w.Header().Set(ActionStatus, ActionFailed)
-  //    fmt.Println("index access failed: ", r)
-  //  }
-  //}()
+  defer func() {
+    if r := recover(); r != nil {
+      w.Header().Set(ActionStatus, ActionFailed)
+      fmt.Println("index access failed: ", r)
+    }
+  }()
 
   name := req.Header.Get(IndexField)
   fmt.Println("looking for index", name)
@@ -172,7 +172,7 @@ func (h *indexHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
   util.Check(err)
 
   refs := multipart.NewWriter(w)
-  w.Header().Set("Content-Type", "multipart/mixed; boundary=" + refs.Boundary() )
+  w.Header().Set("Content-Type", "multipart/mixed")
   w.Header().Set(BoundaryField, refs.Boundary() )
 
   defer refs.Close()

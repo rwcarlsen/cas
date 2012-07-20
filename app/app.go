@@ -2,7 +2,6 @@
 package app
 
 import (
-  "fmt"
   "bytes"
   "strconv"
   "mime/multipart"
@@ -106,7 +105,12 @@ func (cx *Context) IndexBlobs(name string, nBlobs int, params interface{}) (blob
   mr := multipart.NewReader(resp.Body, boundary)
 
   blobs = []*blob.Blob{}
-	for part, err := mr.NextPart(); err == nil; {
+	for {
+		part, err := mr.NextPart()
+    if err != nil {
+      break
+    }
+
     if part.FileName() == "" {
       continue
     }
@@ -116,10 +120,7 @@ func (cx *Context) IndexBlobs(name string, nBlobs int, params interface{}) (blob
       return nil, err
     }
 
-    fmt.Println("debug: ", blob.NewRaw(data))
     blobs = append(blobs, blob.NewRaw(data))
-
-		part, err = mr.NextPart()
 	}
 
   return blobs, nil
