@@ -7,6 +7,7 @@ import (
   "strings"
   "sort"
   "html/template"
+  "io/ioutil"
   "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/app"
   "github.com/rwcarlsen/cas/appserver/notedrop"
@@ -39,6 +40,15 @@ func init() {
 
   sort.Strings(applist)
 }
+var header []byte
+var footer []byte
+func init() {
+  var err error
+  header, err = ioutil.ReadFile("header.html")
+  util.Check(err)
+  footer, err = ioutil.ReadFile("footer.html")
+  util.Check(err)
+}
 
 func main() {
   http.HandleFunc("/", handler)
@@ -62,7 +72,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
     err := tmpl.Execute(w, applist)
     util.Check(err)
   } else if _, ok := handlers[base]; ok {
+    notAjax := r.Header.Get("X-Requested-With") == ""
+    notStatic := !strings.Contains(r.URL.Path, ".")
+    if notAjax && notStatic {
+      w.Write(header)
+    }
     handlers[base](defaultContext, w, r)
+    if notAjax && notStatic {
+      w.Write(footer)
+    }
   } else {
     err := util.LoadStatic(pth, w)
     util.Check(err)
