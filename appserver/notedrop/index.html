@@ -2,54 +2,56 @@
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
 <link rel="stylesheet" type="text/css" href="style.css" />
 
-<div class="row">
-  <div class="span12">
-    <h1>Note Drop</h1>
+<div class="container">
+
+  <div class="row">
+    <div class="span12">
+      <h1>Note Drop</h1>
+    </div>
   </div>
+
+  <br>
+
+  <div class="row" id="meta-frame">
+    <div class="span1">
+      <label for="meta-box">Metadata</label>
+    </div>
+
+    <div class="span11">
+      <input id="meta-box" type="text"/>
+    </div>
+  </div>
+
+  <div class="row" id="body-frame">
+    <div class="span1">
+      <label for="body-box">Body</label>
+    </div>
+
+    <div class="span11">
+      <textarea id="body-box" wrap="hard"></textarea>
+    </div>
+  </div>
+
+  <br>
+
+  <div class="row">
+    <div class="span1 invisible">foo</div>
+
+    <div class="span2">
+      <button id="submit-btn" type="button" class="btn">Save</button>
+    </div>
+  </div>
+
+  <br>
+
+  <div class="row">
+    <div class="span12">
+      <pre>
+        <code id="status-box"></code>
+      </pre>
+    </div>
+  </div>
+
 </div>
-
-<br>
-
-<div class="row" id="meta-frame">
-  <div class="span1">
-    <label for="meta-box">Metadata</label>
-  </div>
-
-  <div class="span11">
-    <input id="meta-box" type="text"/>
-  </div>
-</div>
-
-<div class="row" id="body-frame">
-  <div class="span1">
-    <label for="body-box">Body</label>
-  </div>
-
-  <div class="span11">
-    <textarea id="body-box" wrap="hard"></textarea>
-  </div>
-</div>
-
-<br>
-
-<div class="row">
-  <div class="span1 invisible">foo</div>
-
-  <div class="span2">
-    <button id="submit-btn" type="button" class="btn">Save</button>
-  </div>
-</div>
-
-<br>
-
-<div class="row">
-  <div class="span12">
-    <pre>
-      <code id="status-box"></code>
-    </pre>
-  </div>
-</div>
-
-<br>
 
 <script type="text/javascript" src="main.js"></script>

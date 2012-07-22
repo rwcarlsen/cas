@@ -9,16 +9,20 @@
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
 <link rel="stylesheet" type="text/css" href="style.css" />
 
-<div class="row">
-  <div class="span12">
-    <h1>Recent Blobs</h1>
-  </div>
-</div>
+<div class="container">
 
-<div class="row">
-  <div class="span12">
-    {{template "recent" .}}
+  <div class="row">
+    <div class="span12">
+      <h1>Recent Blobs</h1>
+    </div>
   </div>
+
+  <div class="row">
+    <div class="span12">
+      {{template "recent" .}}
+    </div>
+  </div>
+
 </div>
 
 <script type="text/javascript" src="main.js"></script>
