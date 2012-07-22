@@ -7,6 +7,7 @@ import (
   "fmt"
   "path"
   "io"
+  "mime"
 )
 
 func DeferPrint() {
@@ -28,34 +29,23 @@ func Check(err error) {
   }
 }
 
-func ContentType(f *os.File) (ctype string) {
-  ext := path.Ext(f.Name())
-  if ext == ".js" {
-    ctype = "text/javascript"
-  } else if ext == ".html" {
-    ctype = "text/html"
-  } else if ext == ".htm" {
-    ctype = "text/html"
-  } else if ext == ".css" {
-    ctype = "text/css"
-  } else {
-    data := make([]byte, 512)
-    _, err := f.Read(data)
-    Check(err)
-    ctype = http.DetectContentType(data)
-    _, err = f.Seek(0, 0)
-    Check(err)
-  }
-  return
-}
-
 func LoadStatic(pth string, w http.ResponseWriter) error {
   f, err := os.Open(pth)
   if err != nil {
     return err
   }
 
-  w.Header().Set("Content-Type", ContentType(f))
+  if ext := path.Ext(pth); ext != "" {
+    w.Header().Set("Content-Type", mime.TypeByExtension(ext))
+  } else {
+    data := make([]byte, 512)
+    _, err := f.Read(data)
+    Check(err)
+    tp := http.DetectContentType(data)
+    _, err = f.Seek(0, 0)
+    Check(err)
+    w.Header().Set("Content-Type", tp)
+  }
 
   _, err = io.Copy(w, f)
   return err
