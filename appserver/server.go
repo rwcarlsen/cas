@@ -13,6 +13,7 @@ import (
   "github.com/rwcarlsen/cas/appserver/notedrop"
   "github.com/rwcarlsen/cas/appserver/fupload"
   "github.com/rwcarlsen/cas/appserver/recent"
+  "github.com/rwcarlsen/cas/appserver/pics"
 )
 
 const tmplDir = "templates"
@@ -24,6 +25,7 @@ func init() {
   handlers["notedrop"] = notedrop.Handle
   handlers["fupload"] = fupload.Handle
   handlers["recent"] = recent.Handle
+  handlers["pics"] = pics.Handle
 }
 
 var handlers map[string]app.HandleFunc

@@ -5,6 +5,7 @@ import (
   "fmt"
   "time"
   "strconv"
+  "path"
   "io/ioutil"
   "errors"
   "net/http"
@@ -85,7 +86,7 @@ func (bs *BlobServer) ListenAndServe() error {
   }
 
   http.Handle("/", &defHandler{})
-  http.Handle("/get/", auth.Handler{&getHandler{bs: bs}})
+  http.Handle("/ref/", auth.Handler{&getHandler{bs: bs}})
   http.Handle("/put/", auth.Handler{&putHandler{bs: bs}})
   http.Handle("/index/", auth.Handler{&indexHandler{bs: bs}})
   http.Handle("/share/", &shareHandler{bs: bs})
@@ -111,7 +112,8 @@ func (h *getHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
       fmt.Println("blob post failed: ", r)
     }
   }()
-  ref := req.FormValue(GetField)
+
+  ref := path.Base(req.URL.Path)
 
   b, err := h.bs.Db.Get(ref)
   util.Check(err)

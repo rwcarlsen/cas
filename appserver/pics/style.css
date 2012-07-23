@@ -1,0 +1,13 @@
+
+#meta-box {
+  width:50em;
+}
+
+#body-box {
+  width:50em;
+  height:25em;
+}
+
+.invisible {
+  visibility:hidden;
+}

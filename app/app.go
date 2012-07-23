@@ -33,8 +33,7 @@ func (cx *Context) GetBlobContent(ref string) (content []byte, err error) {
     return nil, err
   }
 
-  r.URL.Path = "/get/"
-  r.Header.Set(blobserver.GetField, ref)
+  r.URL.Path = "/ref/" + ref
   cx.setAuth(r)
 
   client := &http.Client{}
