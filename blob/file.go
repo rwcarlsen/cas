@@ -13,7 +13,7 @@ const (
 )
 
 type FileMeta struct {
-  RcasType Type "rcasType"
+  RcasType string "rcasType"
   Name string
   Path string
   Size float64
@@ -25,7 +25,7 @@ type FileMeta struct {
 // at the specified path.
 func NewFileMeta() *FileMeta {
   return &FileMeta{
-    RcasType: FileType,
+    RcasType: File,
     ContentRefs: make([]string, 0),
   }
 }

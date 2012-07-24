@@ -8,7 +8,7 @@ const (
 )
 
 type ShareMeta struct {
-  RcasType Type "rcasType"
+  RcasType string "rcasType"
   Auth AuthType "AuthType"
   Target string
 }
@@ -17,7 +17,7 @@ type ShareMeta struct {
 // at the specified path.
 func NewShareMeta() *ShareMeta {
   return &ShareMeta{
-    RcasType: ShareType,
+    RcasType: Share,
   }
 }
 

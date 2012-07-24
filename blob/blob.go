@@ -8,6 +8,7 @@ import (
   "encoding/hex"
   "encoding/json"
   "time"
+  "errors"
 )
 
 const (
@@ -17,22 +18,20 @@ const (
 
 // universal meta blob fields
 const (
-  VersionField = "rcasVersion"
-  Version = "0.1"
-  TimeField = "rcasTimestamp"
+  Version = "rcasVersion"
+  CurrVersion = "0.1"
+  Timestamp = "rcasTimestamp"
   TimeFormat = time.RFC3339
-  TypeField = "rcasType"
+  ObjectRef = "objectRef"
 )
-
-type Type string
 
 // universal TypeField values
 const (
-  FileType Type = "file"
-  NoteType = "note"
-  NoneType = "none"
-  ShareType = "share"
-  ObjectType = "object"
+  Type = "rcasType"
+  File = "file" // generic meta type referring to bytes payload
+  MetaNode = "meta-node" // meta type with no bytes payload
+  Share = "share" // defines permissions for sharing a target blob
+  Object = "object" // random, arbitrary blob used to simulate mutability
 )
 
 var (
@@ -63,27 +62,24 @@ type MetaData map[string] interface{}
 
 // Marshal creates a time-stamped, json encoded blob from v.
 func Marshal(v interface{}) (b *Blob, err error) {
-
   data, err := json.Marshal(v)
   if err != nil {
     return nil, err
   }
 
-  var m MetaData
-  err = json.Unmarshal(data, &m)
+  b = NewRaw(data)
+
+  err = b.set(Timestamp, time.Now().Format(TimeFormat))
   if err != nil {
     return nil, err
   }
 
-  m[TimeField] = time.Now().Format(TimeFormat)
-  m[VersionField] = Version
-
-  data, err = json.Marshal(m)
+  err = b.set(Version, CurrVersion)
   if err != nil {
     return nil, err
   }
 
-  return NewRaw(data), nil
+  return b, nil
 }
 
 // Unmarshal parses a json encoded blob and stores the result in 
@@ -100,6 +96,36 @@ type Blob struct {
 // Raw creates a blob using the DefaultHash holding the passed content.
 func NewRaw(content []byte) *Blob {
   return &Blob{Hash: DefaultHash, Content: content}
+}
+
+func (b *Blob) Get(prop string) interface{} {
+  m := MetaData{}
+  err := Unmarshal(b, &m)
+  if err != nil {
+    return nil
+  }
+
+  val, ok := m[prop]
+  if !ok {
+    return nil
+  }
+
+  return val
+}
+
+func (b *Blob) set(prop string, val interface{}) error {
+  m := MetaData{}
+  err := Unmarshal(b, &m)
+  if err != nil {
+    return err
+  }
+
+  if _, ok := m[prop]; ok {
+    return errors.New("blob: cannot overwrite existing property")
+  }
+  m[prop] = val
+
+  return nil
 }
 
 // Sum returns the hash sum of the blob's content using its hash function

@@ -11,6 +11,7 @@ import (
   "github.com/rwcarlsen/cas/blobdb"
   "github.com/rwcarlsen/cas/blobserver"
   "github.com/rwcarlsen/cas/timeindex"
+  "github.com/rwcarlsen/cas/objindex"
 )
 
 var (
@@ -166,7 +167,7 @@ func testTimeIndex() {
 
   var m blob.MetaData
   blob.Unmarshal(b4, &m)
-  t, _ := time.Parse(blob.TimeFormat, m[blob.TimeField].(string))
+  t, _ := time.Parse(blob.TimeFormat, m[blob.Timestamp].(string))
 
   i := ti.IndexNear(t.Add(time.Millisecond * -1))
   ref := ti.RefAt(i)
@@ -191,16 +192,19 @@ func testBlobServer() {
   fmt.Println("testing blob server:")
   db, _ := blobdb.New(dbpath)
 
-  ind := timeindex.New()
+  tInd := timeindex.New()
+  oInd := objindex.New()
   fmt.Println("walking db")
   for b := range db.Walk() {
-    ind.Notify(b)
+    tInd.Notify(b)
+    oInd.Notify(b)
   }
-  sort.Sort(ind)
+  sort.Sort(tInd)
   fmt.Println("done walking")
 
   bs := blobserver.BlobServer{Db: db}
-  bs.AddIndex("time", ind)
+  bs.AddIndex("time", tInd)
+  bs.AddIndex("object", oInd)
   fmt.Println("starting http server...")
   err := bs.ListenAndServe()
   if err != nil {

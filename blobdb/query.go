@@ -164,7 +164,7 @@ func StampedWithin(dur time.Duration) FilterFunc {
       return false
     }
 
-    if val, ok := m[blob.TimeField]; ok {
+    if val, ok := m[blob.Timestamp]; ok {
       t, err := time.Parse(blob.TimeFormat, val.(string))
       if err != nil {
         return false

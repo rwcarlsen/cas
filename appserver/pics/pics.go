@@ -2,7 +2,6 @@
 package pics
 
 import (
-  "fmt"
   "time"
   "strings"
   "mime"
@@ -25,11 +24,8 @@ func Handle(cx *app.Context, w http.ResponseWriter, r *http.Request) {
 
   pth := strings.Trim(r.URL.Path, "/")
   if pth == "pics" {
-    fmt.Println("debug -1: ")
     pl := buildPicList(cx)
-    fmt.Println("debug0: ")
     err := tmpl.Execute(w, pl)
-    fmt.Println("debug1: ", err)
     util.Check(err)
   } else if strings.HasPrefix(pth, "pics/ref/") {
     name := path.Base(pth)
@@ -63,7 +59,6 @@ func buildPicList(cx *app.Context) []*pic {
   for skip := 0; len(pl) < nPics; skip += nBlobs {
     indReq.SkipN = skip
     blobs, err := cx.IndexBlobs("time", nBlobs, indReq)
-    fmt.Println("debug5: len(blobs)=", len(blobs))
     util.Check(err)
 
     pics := makePics(blobs)
@@ -82,16 +77,11 @@ func makePics(blobs []*blob.Blob) []*pic {
   for _, b := range blobs {
     m := blob.FileMeta{}
     err := blob.Unmarshal(b, &m)
-    fmt.Println("file: ", m.Name)
     if err != nil {
-      fmt.Println("not a valid file blob")
-      fmt.Println("why not: ", err)
       continue
     } else if ! validImageFile(&m) {
-      fmt.Println("not a valid image blob")
       continue
     }
-    fmt.Println("FOUND ONE!!!!!!!!!!!!!!")
 
     pl = append(pl, &pic{FileName: m.Name, Path: "ref/" + b.Ref() + path.Ext(m.Name)})
   }
@@ -99,7 +89,7 @@ func makePics(blobs []*blob.Blob) []*pic {
 }
 
 func validImageFile(m *blob.FileMeta) bool {
-  if m.RcasType != blob.FileType {
+  if m.RcasType != blob.File {
     return false
   }
   switch strings.ToLower(path.Ext(m.Name)) {

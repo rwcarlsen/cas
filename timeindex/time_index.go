@@ -20,8 +20,6 @@ const (
   Alternating
 )
 
-const MaxBlobSize = 1 << 22
-
 type Request struct {
   Time time.Time
   Dir Direc
@@ -48,25 +46,24 @@ func New() *TimeIndex {
 // Notify adds additional blob refs (and their timestamps) to the chronological
 // index.
 //
-//Blobs larger than MaxBlobSize and non-json encoded blobs are ignored
-// by TimeIndex
+//Non-json encoded blobs are ignored by TimeIndex.
 func (ti *TimeIndex) Notify(blobs ...*blob.Blob) {
   ti.lock.Lock()
   defer ti.lock.Unlock()
 
+  var err error
   var t time.Time
   for _, b := range blobs {
-    if len(b.Content) > MaxBlobSize {
+    if b.Get(blob.Type) == nil {
       continue
     }
 
-    m := make(blob.MetaData)
-    err := blob.Unmarshal(b, &m)
-    if err != nil {
+    tm := b.Get(blob.Timestamp)
+    if tm == nil {
       continue
     }
 
-    t, err = time.Parse(blob.TimeFormat, m[blob.TimeField].(string))
+    t, err = time.Parse(blob.TimeFormat, tm.(string))
     if err != nil {
       t = time.Now()
     }

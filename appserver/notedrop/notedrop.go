@@ -36,7 +36,7 @@ func putnote(cx *app.Context, w http.ResponseWriter, req *http.Request) {
   err = json.Unmarshal(body, &note)
   util.Check(err)
 
-  note["RcasType"] = blob.NoteType
+  note["RcasType"] = blob.MetaNode
 
   b, err := blob.Marshal(note)
   util.Check(err)
