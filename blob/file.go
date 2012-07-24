@@ -16,7 +16,7 @@ type FileMeta struct {
   RcasType Type "rcasType"
   Name string
   Path string
-  Size int64
+  Size float64
   ModTime time.Time
   ContentRefs []string
 }
@@ -56,7 +56,7 @@ func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
 
   m.Name = stat.Name()
   m.Path = abs
-  m.Size = stat.Size()
+  m.Size = float64(stat.Size())
   m.ModTime = stat.ModTime().UTC()
   m.ContentRefs = RefsFor(chunks)
 
@@ -74,7 +74,7 @@ func SplitRaw(data []byte, blockSize int) []*Blob {
 }
 
 // CombineFile reconstitutes split data into a single byte slice
-func CombineRaw(blobs ...*Blob) []byte {
+func Reconstitute(blobs ...*Blob) []byte {
   data := make([]byte, 0)
 
   for _, b := range blobs {

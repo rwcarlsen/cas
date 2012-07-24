@@ -69,7 +69,7 @@ func sendFileBlobs(cx *app.Context, part *multipart.Part) (respMeta blob.MetaDat
   data, err := ioutil.ReadAll(part)
   util.Check(err)
 
-  meta.Size = int64(len(data))
+  meta.Size = float64(len(data))
 
   blobs := blob.SplitRaw(data, blob.DefaultChunkSize)
   meta.ContentRefs = blob.RefsFor(blobs)

@@ -27,6 +27,15 @@ func (cx *Context) setAuth(r *http.Request) {
   }
 }
 
+func (cx *Context) GetBlob(ref string) (b *blob.Blob, err error) {
+  data, err := cx.GetBlobContent(ref)
+  if err != nil {
+    return nil, err
+  }
+
+  return blob.NewRaw(data), nil
+}
+
 func (cx *Context) GetBlobContent(ref string) (content []byte, err error) {
   r, err := http.NewRequest("GET", cx.BlobServerHost, nil)
   if err != nil {
@@ -54,6 +63,30 @@ func (cx *Context) GetBlobContent(ref string) (content []byte, err error) {
 
   resp.Body.Close()
   return content, nil
+}
+
+func (cx *Context) ReconstituteFile(ref string) (m *blob.FileMeta, content []byte, err error) {
+  b, err := cx.GetBlob(ref)
+  if err != nil {
+    return nil, nil, err
+  }
+
+  m = &blob.FileMeta{}
+  err = blob.Unmarshal(b, m)
+  if err != nil {
+    return nil, nil, err
+  }
+
+  chunks := []*blob.Blob{}
+  for _, ref := range m.ContentRefs {
+    b, err := cx.GetBlob(ref)
+    if err != nil {
+      return nil, nil, err
+    }
+    chunks = append(chunks, b)
+  }
+
+  return m, blob.Reconstitute(chunks...), nil
 }
 
 func (cx *Context) PutBlob(b *blob.Blob) error {
@@ -124,4 +157,6 @@ func (cx *Context) IndexBlobs(name string, nBlobs int, params interface{}) (blob
 
   return blobs, nil
 }
+
+
 
