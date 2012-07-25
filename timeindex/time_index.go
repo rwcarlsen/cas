@@ -51,21 +51,14 @@ func (ti *TimeIndex) Notify(blobs ...*blob.Blob) {
   ti.lock.Lock()
   defer ti.lock.Unlock()
 
-  var err error
-  var t time.Time
   for _, b := range blobs {
-    if b.Get(blob.Type) == nil {
+    if b.Type() == blob.NoType {
       continue
     }
 
-    tm := b.Get(blob.Timestamp)
-    if tm == nil {
-      continue
-    }
-
-    t, err = time.Parse(blob.TimeFormat, tm.(string))
+    t, err := b.Timestamp()
     if err != nil {
-      t = time.Now()
+      continue
     }
 
     ti.entries = append(ti.entries, &timeEntry{tm: t, ref: b.Ref()})

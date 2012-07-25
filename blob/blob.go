@@ -32,6 +32,8 @@ const (
   MetaNode = "meta-node" // meta type with no bytes payload
   Share = "share" // defines permissions for sharing a target blob
   Object = "object" // random, arbitrary blob used to simulate mutability
+  Binary = "binary-bytes" // a blob that is not json
+  NoType = "no-type" // blob is json but has no Type field
 )
 
 var (
@@ -69,12 +71,16 @@ func Marshal(v interface{}) (b *Blob, err error) {
 
   b = NewRaw(data)
 
-  err = b.set(Timestamp, time.Now().Format(TimeFormat))
+  m := MetaData{}
+  err = Unmarshal(b, &m)
   if err != nil {
     return nil, err
   }
 
-  err = b.set(Version, CurrVersion)
+  m[Timestamp] = time.Now().Format(TimeFormat)
+  m[Version] = CurrVersion
+
+  b, err = Marshal(m)
   if err != nil {
     return nil, err
   }
@@ -98,34 +104,48 @@ func NewRaw(content []byte) *Blob {
   return &Blob{Hash: DefaultHash, Content: content}
 }
 
-func (b *Blob) Get(prop string) interface{} {
+// Type returns the value of the blob.Type field if the object is a valid
+// json blob.
+//
+// It returns const NoType if the field is not present and const Binary
+// if the blob is not valid json
+func (b *Blob) Type() string {
+  val := b.get(Type)
+  if val == nil {
+    return NoType
+  }
+  return val.(string)
+}
+
+func (b *Blob) Timestamp() (t time.Time, err error) {
+  tm := b.get(Timestamp)
+  if tm == nil {
+    return time.Time{}, errors.New("blob: no time-stamp present")
+  }
+  return time.Parse(TimeFormat, tm.(string))
+}
+
+func (b *Blob) ObjectRef() string {
+  ref := b.get(ObjectRef)
+  if ref == nil {
+    return ""
+  }
+  return ref.(string)
+}
+
+func (b *Blob) get(prop string) interface{} {
   m := MetaData{}
   err := Unmarshal(b, &m)
   if err != nil {
     return nil
   }
 
-  val, ok := m[prop]
+  val, ok := m[Timestamp]
   if !ok {
     return nil
   }
 
   return val
-}
-
-func (b *Blob) set(prop string, val interface{}) error {
-  m := MetaData{}
-  err := Unmarshal(b, &m)
-  if err != nil {
-    return err
-  }
-
-  if _, ok := m[prop]; ok {
-    return errors.New("blob: cannot overwrite existing property")
-  }
-  m[prop] = val
-
-  return nil
 }
 
 // Sum returns the hash sum of the blob's content using its hash function

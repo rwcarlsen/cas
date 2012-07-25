@@ -37,12 +37,10 @@ func (ind *ObjectIndex) Notify(blobs ...*blob.Blob) {
   defer ind.lock.Unlock()
 
   for _, b := range blobs {
-    tmp := b.Get(blob.ObjectRef)
-    if tmp == nil {
+    oref := b.ObjectRef()
+    if oref == "" {
       continue
     }
-
-    oref := tmp.(string)
 
     if ind.objs[oref] == nil {
       ind.objs[oref] = []string{}
