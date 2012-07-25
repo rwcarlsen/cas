@@ -119,7 +119,7 @@ func (h *getHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
   util.Check(err)
 
   w.Header().Set(ActionStatus, ActionSuccess)
-  w.Write(b.Content)
+  w.Write(b.Content())
   fmt.Println("successful retrieval")
 }
 
@@ -187,7 +187,7 @@ func (h *indexHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
     part, err := refs.CreateFormFile("blob-ref", ref)
     util.Check(err)
-    part.Write(b.Content)
+    part.Write(b.Content())
   }
 }
 
@@ -203,7 +203,7 @@ func (h *shareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
       m := make(blob.MetaData)
       m["message"] = msg
       resp, _ := blob.Marshal(m)
-      w.Write(resp.Content)
+      w.Write(resp.Content())
     }
   }()
 
@@ -237,6 +237,6 @@ func (h *shareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
   head.Set("Pragma", "private")
   head.Set("Expires", "Mon, 26 Jul 1997 05:00:00 GMT")
 
-  w.Write(b.Content)
+  w.Write(b.Content())
 }
 

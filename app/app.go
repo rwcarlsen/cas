@@ -90,7 +90,7 @@ func (cx *Context) ReconstituteFile(ref string) (m *blob.FileMeta, content []byt
 }
 
 func (cx *Context) PutBlob(b *blob.Blob) error {
-  r, err := http.NewRequest("POST", cx.BlobServerHost, bytes.NewBuffer(b.Content))
+  r, err := http.NewRequest("POST", cx.BlobServerHost, bytes.NewBuffer(b.Content()))
   if err != nil {
     return err
   }

@@ -1,15 +1,13 @@
 
 package blob
 
-type AuthType string
-
 const (
-  HaveRef AuthType = "have-ref"
+  HaveRef = "have-ref"
 )
 
 type ShareMeta struct {
-  RcasType string "rcasType"
-  Auth AuthType "AuthType"
+  RcasType string
+  AuthType string
   Target string
 }
 

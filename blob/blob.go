@@ -2,6 +2,7 @@
 package blob
 
 import (
+  "strings"
   "crypto"
   "crypto/sha256"
   "crypto/sha512"
@@ -18,21 +19,20 @@ const (
 
 // universal meta blob fields
 const (
-  Version = "rcasVersion"
+  Version = "RcasVersion"
   CurrVersion = "0.1"
-  Timestamp = "rcasTimestamp"
+  Timestamp = "RcasTimestamp"
   TimeFormat = time.RFC3339
-  ObjectRef = "objectRef"
+  ObjectRef = "RcasObjectRef"
 )
 
 // universal TypeField values
 const (
-  Type = "rcasType"
+  Type = "RcasType"
   File = "file" // generic meta type referring to bytes payload
   MetaNode = "meta-node" // meta type with no bytes payload
   Share = "share" // defines permissions for sharing a target blob
   Object = "object" // random, arbitrary blob used to simulate mutability
-  Binary = "binary-bytes" // a blob that is not json
   NoType = "no-type" // blob is json but has no Type field
 )
 
@@ -69,39 +69,36 @@ func Marshal(v interface{}) (b *Blob, err error) {
     return nil, err
   }
 
-  b = NewRaw(data)
+  data = addField(Timestamp, time.Now().Format(TimeFormat), data)
+  data = addField(Version, CurrVersion, data)
+  return NewRaw(data), nil
+}
 
-  m := MetaData{}
-  err = Unmarshal(b, &m)
-  if err != nil {
-    return nil, err
+func addField(field, val string, data []byte) []byte {
+  d := string(data)
+  trimmed := strings.TrimRight(d, " ")
+  if len(trimmed) == 0 || trimmed[len(trimmed)-1] != '}' {
+    panic("blob: json blob marshaling is broken")
   }
-
-  m[Timestamp] = time.Now().Format(TimeFormat)
-  m[Version] = CurrVersion
-
-  b, err = Marshal(m)
-  if err != nil {
-    return nil, err
-  }
-
-  return b, nil
+  trimmed = trimmed[:len(trimmed) - 1]
+  trimmed += ",\"" + field + "\":\"" + val + "\"}\n"
+  return []byte(trimmed)
 }
 
 // Unmarshal parses a json encoded blob and stores the result in 
 // the value pointed to by v.
 func Unmarshal(b *Blob, v interface{}) error {
-  return json.Unmarshal(b.Content, v)
+  return json.Unmarshal(b.content, v)
 }
 
 type Blob struct {
   Hash crypto.Hash
-  Content []byte
+  content []byte
 }
 
 // Raw creates a blob using the DefaultHash holding the passed content.
 func NewRaw(content []byte) *Blob {
-  return &Blob{Hash: DefaultHash, Content: content}
+  return &Blob{Hash: DefaultHash, content: content}
 }
 
 // Type returns the value of the blob.Type field if the object is a valid
@@ -151,8 +148,15 @@ func (b *Blob) get(prop string) interface{} {
 // Sum returns the hash sum of the blob's content using its hash function
 func (b *Blob) Sum() []byte {
   hsh := b.Hash.New()
-  hsh.Write(b.Content)
+  hsh.Write(b.content)
   return hsh.Sum([]byte{})
+}
+
+// Content returns a copy of data associated with this blob.
+func (b *Blob) Content() []byte {
+  d := make([]byte, len(b.content))
+  copy(d, b.content)
+  return d
 }
 
 // Ref returns hash-name + hash for the blob.
@@ -161,7 +165,7 @@ func (b *Blob) Ref() string {
 }
 
 func (b *Blob) String() string {
-  return b.Ref() + ":\n" +  string(b.Content)
+  return b.Ref() + ":\n" +  string(b.content)
 }
 
 // RefsFor returns a list of the refs for each blob in the given list.

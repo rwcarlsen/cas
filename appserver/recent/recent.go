@@ -48,7 +48,7 @@ func stripBlobs(cx *app.Context) []*shortblob {
   short := []*shortblob{}
   for _, b := range blobs {
     buf := bytes.NewBuffer([]byte{})
-    json.Indent(buf, b.Content, "", "    ")
+    json.Indent(buf, b.Content(), "", "    ")
     short = append(short, &shortblob{b.Ref(), buf.String()})
   }
 

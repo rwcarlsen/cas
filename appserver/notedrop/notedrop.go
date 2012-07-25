@@ -44,5 +44,5 @@ func putnote(cx *app.Context, w http.ResponseWriter, req *http.Request) {
   err = cx.PutBlob(b)
   util.Check(err)
 
-  w.Write(b.Content)
+  w.Write(b.Content())
 }

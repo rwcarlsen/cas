@@ -140,7 +140,7 @@ func (q *Query) SetRoots(roots ...*Filter) {
 /////////////////////////////////////////////////////////
 
 func IsJson(b *blob.Blob) bool {
-  if err := json.Unmarshal(b.Content, &blob.MetaData{}); err != nil {
+  if err := json.Unmarshal(b.Content(), &blob.MetaData{}); err != nil {
     return false
   }
   return true
@@ -148,7 +148,7 @@ func IsJson(b *blob.Blob) bool {
 
 func Contains(substr string) FilterFunc {
   return func(b *blob.Blob) bool {
-    s := string(b.Content)
+    s := string(b.Content())
     if strings.Contains(s, substr) {
       return true
     }
@@ -159,7 +159,7 @@ func Contains(substr string) FilterFunc {
 func StampedWithin(dur time.Duration) FilterFunc {
   return func(b *blob.Blob) bool {
     var m blob.MetaData
-    err := json.Unmarshal(b.Content, &m)
+    err := json.Unmarshal(b.Content(), &m)
     if err != nil {
       return false
     }

@@ -9,11 +9,11 @@ import (
 )
 
 const (
-  DefaultChunkSize = 1 << 30 // 1 Gb
+  DefaultChunkSize = 1 << 24 // 16Mb
 )
 
 type FileMeta struct {
-  RcasType string "rcasType"
+  RcasType string
   Name string
   Path string
   Size float64
@@ -78,7 +78,7 @@ func Reconstitute(blobs ...*Blob) []byte {
   data := make([]byte, 0)
 
   for _, b := range blobs {
-    data = append(data, b.Content...)
+    data = append(data, b.Content()...)
   }
   return data
 }

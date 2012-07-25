@@ -42,13 +42,13 @@ func Handle(cx *app.Context, w http.ResponseWriter, r *http.Request) {
   }
 }
 
-type pic struct {
+type picentry struct {
   FileName string
   Path string
 }
 
-func buildPicList(cx *app.Context) []*pic {
-  pl := []*pic{}
+func buildPicList(cx *app.Context) []*picentry {
+  pl := []*picentry{}
 
   indReq := timeindex.Request{
     Time: time.Now(),
@@ -72,8 +72,8 @@ func buildPicList(cx *app.Context) []*pic {
   return pl
 }
 
-func makePics(blobs []*blob.Blob) []*pic {
-  pl := []*pic{}
+func makePics(blobs []*blob.Blob) []*picentry {
+  pl := []*picentry{}
   for _, b := range blobs {
     m := blob.FileMeta{}
     err := blob.Unmarshal(b, &m)
@@ -83,7 +83,7 @@ func makePics(blobs []*blob.Blob) []*pic {
       continue
     }
 
-    pl = append(pl, &pic{FileName: m.Name, Path: "ref/" + b.Ref() + path.Ext(m.Name)})
+    pl = append(pl, &picentry{FileName: m.Name, Path: "ref/" + b.Ref() + path.Ext(m.Name)})
   }
   return pl
 }

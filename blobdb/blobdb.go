@@ -74,7 +74,7 @@ func (db *Dbase) Put(blobs ...*blob.Blob) (err error) {
     p := path.Join(db.location, ref)
 
     if info, err := os.Stat(p); err == nil {
-      if info.Size() == int64(len(b.Content)) {
+      if info.Size() == int64(len(b.Content())) {
         dup = DupContentErr
       } else {
         return HashCollideErr
@@ -125,7 +125,7 @@ func (db *Dbase) writeBlob(b *blob.Blob) (err error) {
   }
   defer f.Close()
 
-  _, err = f.Write(b.Content)
+  _, err = f.Write(b.Content())
   return err
 }
 
