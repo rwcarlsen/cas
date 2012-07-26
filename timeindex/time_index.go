@@ -108,7 +108,12 @@ func (ti *TimeIndex) Len() int {
 }
 
 // RefAt returns the blob ref stored at index i (i=0 being the oldest blob)
-func (ti *TimeIndex) RefAt(i int) string {
+func (ti *TimeIndex) RefAt(i int) (ref string) {
+  defer func() {
+    if r := recover(); r != nil {
+      ref = ""
+    }
+  }()
   ti.lock.RLock()
   defer ti.lock.RUnlock()
   return ti.entries[i].ref
@@ -121,6 +126,10 @@ func (ti *TimeIndex) IndexNear(t time.Time) int {
   defer ti.lock.RUnlock()
 
   down, up := 0, len(ti.entries) - 1
+  if up < 0 {
+    return -1
+  }
+
   pivot, done := split(down, up)
   for !done {
     pivt := ti.entries[pivot].tm

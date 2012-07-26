@@ -61,7 +61,7 @@ func NameToHash(n string) crypto.Hash {
 
 // Marshal creates a time-stamped, json encoded blob from v.
 func Marshal(v interface{}) (b *Blob, err error) {
-  data, err := json.Marshal(v)
+  data, err := json.MarshalIndent(v, "", "\t")
   if err != nil {
     return nil, err
   }
@@ -72,13 +72,13 @@ func Marshal(v interface{}) (b *Blob, err error) {
 }
 
 func addField(field, val string, data []byte) []byte {
-  d := string(data)
-  trimmed := strings.TrimRight(d, " ")
+  s := string(data)
+  trimmed := strings.TrimSpace(s)
   if len(trimmed) == 0 || trimmed[len(trimmed)-1] != '}' {
     panic("blob: json blob marshaling is broken")
   }
   trimmed = trimmed[:len(trimmed) - 1]
-  trimmed += ",\"" + field + "\":\"" + val + "\"}\n"
+  trimmed += ",\n\t\"" + field + "\":\"" + val + "\"\n}\n"
   return []byte(trimmed)
 }
 

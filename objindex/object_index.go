@@ -24,14 +24,6 @@ type object struct {
   tms []time.Time
 }
 
-func (o *object) Newest() (ref string) {
-  return o.versions[len(o.versions) - 1]
-}
-
-func (o *object) Oldest() (ref string) {
-  return o.versions[0]
-}
-
 func (o *object) Add(b *blob.Blob) {
   o.versions = append(o.versions, b.Ref())
   t, err := b.Timestamp()

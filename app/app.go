@@ -155,8 +155,10 @@ func (cx *Context) IndexBlobs(name string, nBlobs int, params interface{}) (blob
     blobs = append(blobs, blob.NewRaw(data))
 	}
 
+  if len(blobs) == 0 {
+    return nil, errors.New("app: no blobs for that index query")
+  }
+
   return blobs, nil
 }
-
-
 

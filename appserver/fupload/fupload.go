@@ -2,7 +2,6 @@
 package fupload
 
 import (
-  "fmt"
   "strings"
   "io/ioutil"
   "net/http"
@@ -42,7 +41,6 @@ func putfiles(cx *app.Context, w http.ResponseWriter, req *http.Request) {
     } else if part.FileName() == "" {
       continue
     }
-    fmt.Println("handling file '" + part.FileName() + "'")
     resp := sendFileBlobs(cx, part)
     resps = append(resps, resp)
 		part, err = mr.NextPart()
@@ -64,6 +62,8 @@ func sendFileBlobs(cx *app.Context, part *multipart.Part) (respMeta map[string]i
     }
   }()
 
+  obj := blob.NewObject()
+  meta.RcasObjectRef = obj.Ref()
   meta.Name = part.FileName()
 
   data, err := ioutil.ReadAll(part)
@@ -77,8 +77,7 @@ func sendFileBlobs(cx *app.Context, part *multipart.Part) (respMeta map[string]i
   m, err := blob.Marshal(meta)
   util.Check(err)
 
-  blobs = append(blobs, m)
-
+  blobs = append(blobs, m, obj)
   for _, b := range blobs {
     err = cx.PutBlob(b)
     util.Check(err)

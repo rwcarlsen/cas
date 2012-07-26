@@ -1,11 +1,10 @@
 {{define "piclist"}}
-  {{range .}}
-    <img src="{{.Path}}" width="300" />
+  {{range $path, $photo := .}}
+    <img src="{{$path}}" width="400" />
     <br>
   {{end}}
 {{end}}
 
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
 <link rel="stylesheet" type="text/css" href="style.css" />
 
 <div class="container">
@@ -15,6 +14,22 @@
       <h1>Recent Pics</h1>
     </div>
   </div>
+
+  <br>
+
+  <div class="row">
+    <div class="btn-group span12">
+      <a class="btn dropdown-toggle" data-toggle="dropdown">
+        Menu <span class="caret"></span>
+      </a>
+      <ul class="dropdown-menu">
+        <li><a href="#">Hello</a></li>
+        <li><a href="#">Do nothing</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <br><br>
 
   <div class="row">
     <div class="span12">

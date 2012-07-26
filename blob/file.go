@@ -14,8 +14,10 @@ const (
 
 type FileMeta struct {
   RcasType string
+  RcasObjectRef string
   Name string
   Path string
+  Notes string
   Size int64
   ModTime time.Time
   ContentRefs []string

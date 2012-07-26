@@ -19,7 +19,7 @@ func DeferPrint() {
 func DeferWrite(w http.ResponseWriter) {
   if r := recover(); r != nil {
     fmt.Println(r)
-    w.Write([]byte(r.(error).Error()))
+    w.Write([]byte(fmt.Sprint(r)))
   }
 }
 

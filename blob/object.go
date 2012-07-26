@@ -17,15 +17,20 @@ type objectMeta struct {
 // NewObject creates an immutable time-stamped blob that can be used to
 // simulate mutable objects that have a dynamic, pruneable revision
 // history.
-func NewObject() (b *Blob, err error) {
+func NewObject() *Blob {
   r := make([]byte, 100)
-  if _, err = rand.Read(r); err != nil {
-    return nil, err
+  if _, err := rand.Read(r); err != nil {
+    panic(err)
   }
 
   o := &objectMeta{}
   o.Type = Object
   o.RcasRandom = r
 
-  return Marshal(o)
+  b, err := Marshal(o)
+  if err != nil {
+    panic(err)
+  }
+
+  return b
 }

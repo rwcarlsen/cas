@@ -10,6 +10,8 @@ import (
   "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/app"
   "github.com/rwcarlsen/cas/timeindex"
+  "github.com/rwcarlsen/cas/objindex"
+  "github.com/rwcarlsen/cas/appserver/pics/photos"
   "html/template"
   "path"
 )
@@ -19,18 +21,30 @@ func init() {
   tmpl = template.Must(template.ParseFiles("pics/index.tmpl"))
 }
 
-func Handle(cx *app.Context, w http.ResponseWriter, r *http.Request) {
+var picIndex *photos.Index
+var cx *app.Context
+func Handle(ncx *app.Context, w http.ResponseWriter, r *http.Request) {
   defer util.DeferWrite(w)
+  cx = ncx
+
+  if picIndex == nil {
+    loadPicIndex()
+  }
+  updateIndex()
 
   pth := strings.Trim(r.URL.Path, "/")
   if pth == "pics" {
-    pl := buildPicList(cx)
-    err := tmpl.Execute(w, pl)
+    links := picLinks(picIndex.Newest(10))
+    err := tmpl.Execute(w, links)
     util.Check(err)
   } else if strings.HasPrefix(pth, "pics/ref/") {
-    name := path.Base(pth)
-    ref := name[:len(name)-len(path.Ext(name))]
-    m, data, err := cx.ReconstituteFile(ref)
+    ref := path.Base(pth)
+    ref = ref[:len(ref)-len(path.Ext(ref))]
+
+    p := picForObj(ref)
+    fref := tip(p.FileObjRef).Ref()
+
+    m, data, err := cx.ReconstituteFile(fref)
     util.Check(err)
 
     ext := path.Ext(m.Name)
@@ -42,50 +56,86 @@ func Handle(cx *app.Context, w http.ResponseWriter, r *http.Request) {
   }
 }
 
-type picentry struct {
-  FileName string
-  Path string
+func updateIndex() {
+  indReq := timeindex.Request{
+    Time: picIndex.LastUpdate
+    Dir:timeindex.Forward,
+  }
+
+  nBlobs := 50
+  for skip := 0; true; skip += nBlobs {
+    indReq.SkipN = skip
+    blobs, err := cx.IndexBlobs("time", nBlobs, indReq)
+    if err != nil {
+      break
+    }
+
+    picIndex.Notify(blobs...)
+
+    if len(blobs) < nBlobs {
+      break
+    }
+  }
+  
 }
 
-func buildPicList(cx *app.Context) []*picentry {
-  pl := []*picentry{}
-
+func loadPicIndex() {
   indReq := timeindex.Request{
     Time: time.Now(),
     Dir:timeindex.Backward,
   }
 
-  nBlobs, nPics := 10, 10
-  for skip := 0; len(pl) < nPics; skip += nBlobs {
+  nBlobs := 10
+  for skip := 0; true; skip += nBlobs {
     indReq.SkipN = skip
     blobs, err := cx.IndexBlobs("time", nBlobs, indReq)
-    util.Check(err)
-
-    pics := makePics(blobs)
-    pl = append(pl, pics...)
+    if err != nil {
+      break
+    }
+    for _, b := range blobs {
+      if b.Type() == photos.IndexType {
+        err := blob.Unmarshal(b, picIndex)
+        util.Check(err)
+        return
+      }
+    }
 
     if len(blobs) < nBlobs {
       break
     }
   }
 
-  return pl
+  // no pre-existing photo index found
+  picIndex = photos.NewIndex()
+  obj := blob.NewObject()
+  picIndex.RcasObjectRef = obj.Ref()
+  err := cx.PutBlob(obj)
+  if err != nil {
+    panic("pics: could not create photo index")
+  }
 }
 
-func makePics(blobs []*blob.Blob) []*picentry {
-  pl := []*picentry{}
-  for _, b := range blobs {
-    m := blob.FileMeta{}
-    err := blob.Unmarshal(b, &m)
-    if err != nil {
-      continue
-    } else if ! validImageFile(&m) {
-      continue
-    }
+func picForObj(ref string) *photos.Photo {
+  b := tip(ref)
+  p := photos.NewPhoto()
+  err := blob.Unmarshal(b, p)
+  util.Check(err)
+  return p
+}
 
-    pl = append(pl, &picentry{FileName: m.Name, Path: "ref/" + b.Ref() + path.Ext(m.Name)})
+func tip(objref string) *blob.Blob {
+  objReq := objindex.Request{ObjectRef:objref}
+  blobs, err := cx.IndexBlobs("object", 1, objReq)
+  util.Check(err)
+  return blobs[0]
+}
+
+func picLinks(refs []string) map[string]*photos.Photo {
+  links := map[string]*photos.Photo{}
+  for _, ref := range refs {
+    links["ref/" + ref + ".photo"] = picForObj(ref)
   }
-  return pl
+  return links
 }
 
 func validImageFile(m *blob.FileMeta) bool {
