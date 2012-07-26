@@ -4,10 +4,13 @@ package objindex
 import (
   "encoding/json"
   "io/ioutil"
+  "time"
+  "sort"
   "errors"
   "sync"
   "net/http"
   "github.com/rwcarlsen/cas/blob"
+  "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/index"
 )
 
@@ -16,14 +19,50 @@ type Request struct {
   SkipN int
 }
 
+type object struct {
+  versions []string
+  tms []time.Time
+}
+
+func (o *object) Newest() (ref string) {
+  return o.versions[len(o.versions) - 1]
+}
+
+func (o *object) Oldest() (ref string) {
+  return o.versions[0]
+}
+
+func (o *object) Add(b *blob.Blob) {
+  o.versions = append(o.versions, b.Ref())
+  t, err := b.Timestamp()
+  util.Check(err)
+  o.tms = append(o.tms, t)
+}
+
+func (o *object) Swap(i, j int) {
+  o.versions[i], o.versions[j] = o.versions[j], o.versions[i]
+}
+
+func (o *object) Less(i, j int) bool {
+  return time.Since(o.tms[i]) > time.Since(o.tms[j])
+}
+
+func (o *object) Len() int {
+  return len(o.versions)
+}
+
+func (o *object) At(i int) string {
+  return o.versions[i]
+}
+
 type ObjectIndex struct {
-  objs map[string][]string
+  objs map[string]*object
   lock sync.RWMutex
 }
 
 func New() *ObjectIndex {
   return &ObjectIndex{
-    objs: map[string][]string{},
+    objs: map[string]*object{},
   }
 }
 
@@ -43,10 +82,10 @@ func (ind *ObjectIndex) Notify(blobs ...*blob.Blob) {
     }
 
     if ind.objs[oref] == nil {
-      ind.objs[oref] = []string{}
+      ind.objs[oref] = &object{}
     }
 
-    ind.objs[oref] = append(ind.objs[oref], b.Ref())
+    ind.objs[oref].Add(b)
   }
 }
 
@@ -69,6 +108,16 @@ func (ind *ObjectIndex) GetIter(req *http.Request) (it index.Iter,  err error) {
   return it, nil
 }
 
+// Sort organizes the refs for each object in chronological order.
+//
+// Use this to properly establish an object index that has just been
+// initialized by blobs not passed in chronological order.
+func (ind *ObjectIndex) Sort() {
+  for _, obj := range ind.objs {
+    sort.Sort(obj)
+  }
+}
+
 func (ind *ObjectIndex) RefAt(objref string, i int) (ref string,  err error) {
   ind.lock.RLock()
   defer ind.lock.RUnlock()
@@ -76,7 +125,7 @@ func (ind *ObjectIndex) RefAt(objref string, i int) (ref string,  err error) {
   if _, ok := ind.objs[objref]; !ok {
     return "", errors.New("objindex: invalid object ref")
   }
-  return ind.objs[objref][i], nil
+  return ind.objs[objref].At(i), nil
 }
 
 // Len returns the number of blob refs in the index.
@@ -87,7 +136,7 @@ func (ind *ObjectIndex) ObjLen(objref string) int {
   if _, ok := ind.objs[objref]; !ok {
     return 0
   }
-  return len(ind.objs[objref])
+  return ind.objs[objref].Len()
 }
 
 // Len returns the number of blob refs in the index.
@@ -96,8 +145,8 @@ func (ind *ObjectIndex) Len() int {
   defer ind.lock.RUnlock()
 
   tot := 0
-  for _, objlist := range ind.objs {
-    tot += len(objlist)
+  for _, obj := range ind.objs {
+    tot += obj.Len()
   }
   return tot
 }

@@ -200,6 +200,7 @@ func testBlobServer() {
     oInd.Notify(b)
   }
   sort.Sort(tInd)
+  oInd.Sort()
   fmt.Println("done walking")
 
   bs := blobserver.BlobServer{Db: db}
