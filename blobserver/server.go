@@ -5,9 +5,11 @@ import (
   "fmt"
   "time"
   "strconv"
-  "path"
-  "io/ioutil"
   "errors"
+  "path"
+  "io"
+  "io/ioutil"
+  "encoding/json"
   "net/http"
   "mime/multipart"
   "github.com/rwcarlsen/cas/blob"
@@ -199,11 +201,10 @@ func (h *shareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
   defer func() {
     if r := recover(); r != nil {
       fmt.Println(r)
-      msg := "blob retrieval failed: " + r.(error).Error()
-      m := make(blob.MetaData)
-      m["message"] = msg
-      resp, _ := blob.Marshal(m)
-      w.Write(resp.Content())
+      m := map[string]string{}
+      m["status"] = "blob retrieval failed: " + r.(error).Error()
+      data, _ := json.Marshal(&m)
+      w.Write(data)
     }
   }()
 
@@ -211,20 +212,17 @@ func (h *shareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
   b, err := h.bs.Db.Get(ref)
   util.Check(err)
 
-  //m := make(blob.MetaData)
-  //m, err := blob.Unmarshal(b, &m)
-  //util.Check(err)
+  if b.Type() != blob.Share {
+    io.WriteString(w, "Unauthorized")
+    return
+  }
 
-  //tpe, ok := m[blob.TypeField]
-  //if !ok {
-  //  // unauthorized
-  //  return
-  //}
-
-  //if tpe != blob.ShareKind {
-  //  // unauthorized
-  //  return
-  //}
+  var sh blob.ShareMeta
+  err = blob.Unmarshal(b, &sh)
+  if !sh.IsAuthorized() {
+    io.WriteString(w, "Unauthorized")
+    return
+  }
 
   fname := "what a name"
 
@@ -236,7 +234,6 @@ func (h *shareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
   head.Set("Cache-Control", "private")
   head.Set("Pragma", "private")
   head.Set("Expires", "Mon, 26 Jul 1997 05:00:00 GMT")
-
   w.Write(b.Content())
 }
 

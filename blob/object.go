@@ -6,8 +6,13 @@ import (
 )
 
 const (
-  randomField = "rcasRandom"
+  randomField = "RcasRandom"
 )
+
+type objectMeta struct {
+  Type string
+  RcasRandom []byte
+}
 
 // NewObject creates an immutable time-stamped blob that can be used to
 // simulate mutable objects that have a dynamic, pruneable revision
@@ -18,10 +23,9 @@ func NewObject() (b *Blob, err error) {
     return nil, err
   }
 
-  o := MetaData{}
-
-  o[Type] = Object
-  o[randomField] = r
+  o := &objectMeta{}
+  o.Type = Object
+  o.RcasRandom = r
 
   return Marshal(o)
 }

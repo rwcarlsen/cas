@@ -3,7 +3,6 @@ package blobdb
 
 import (
   "github.com/rwcarlsen/cas/blob"
-  "encoding/json"
   "strings"
   "time"
 )
@@ -140,7 +139,7 @@ func (q *Query) SetRoots(roots ...*Filter) {
 /////////////////////////////////////////////////////////
 
 func IsJson(b *blob.Blob) bool {
-  if err := json.Unmarshal(b.Content(), &blob.MetaData{}); err != nil {
+  if b.Type() == "" {
     return false
   }
   return true
@@ -158,24 +157,15 @@ func Contains(substr string) FilterFunc {
 
 func StampedWithin(dur time.Duration) FilterFunc {
   return func(b *blob.Blob) bool {
-    var m blob.MetaData
-    err := json.Unmarshal(b.Content(), &m)
+    t, err := b.Timestamp()
     if err != nil {
       return false
     }
 
-    if val, ok := m[blob.Timestamp]; ok {
-      t, err := time.Parse(blob.TimeFormat, val.(string))
-      if err != nil {
-        return false
-      }
-
-      if time.Since(t) > dur {
-        return false
-      }
-      return true
+    if time.Since(t) > dur {
+      return false
     }
-    return false
+    return true
   }
 }
 

@@ -16,7 +16,7 @@ type FileMeta struct {
   RcasType string
   Name string
   Path string
-  Size float64
+  Size int64
   ModTime time.Time
   ContentRefs []string
 }
@@ -56,7 +56,7 @@ func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
 
   m.Name = stat.Name()
   m.Path = abs
-  m.Size = float64(stat.Size())
+  m.Size = stat.Size()
   m.ModTime = stat.ModTime().UTC()
   m.ContentRefs = RefsFor(chunks)
 

@@ -52,10 +52,10 @@ func putfiles(cx *app.Context, w http.ResponseWriter, req *http.Request) {
   w.Write(data)
 }
 
-func sendFileBlobs(cx *app.Context, part *multipart.Part) (respMeta blob.MetaData) {
+func sendFileBlobs(cx *app.Context, part *multipart.Part) (respMeta map[string]interface{}) {
   meta := blob.NewFileMeta()
   defer func() {
-    respMeta = make(blob.MetaData)
+    respMeta = map[string]interface{}{}
     respMeta["name"] = meta.Name
     respMeta["size"] = meta.Size
 
@@ -69,7 +69,7 @@ func sendFileBlobs(cx *app.Context, part *multipart.Part) (respMeta blob.MetaDat
   data, err := ioutil.ReadAll(part)
   util.Check(err)
 
-  meta.Size = float64(len(data))
+  meta.Size = int64(len(data))
 
   blobs := blob.SplitRaw(data, blob.DefaultChunkSize)
   meta.ContentRefs = blob.RefsFor(blobs)

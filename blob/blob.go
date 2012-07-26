@@ -59,9 +59,6 @@ func NameToHash(n string) crypto.Hash {
   return name2Hash[n]
 }
 
-// generic type for creating key-value based blobs
-type MetaData map[string] interface{}
-
 // Marshal creates a time-stamped, json encoded blob from v.
 func Marshal(v interface{}) (b *Blob, err error) {
   data, err := json.Marshal(v)
@@ -131,7 +128,7 @@ func (b *Blob) ObjectRef() string {
 }
 
 func (b *Blob) get(prop string) interface{} {
-  m := MetaData{}
+  m := map[string]interface{}{}
   err := Unmarshal(b, &m)
   if err != nil {
     return nil

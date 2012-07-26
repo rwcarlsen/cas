@@ -19,3 +19,6 @@ func NewShareMeta() *ShareMeta {
   }
 }
 
+func (sh *ShareMeta) IsAuthorized() bool {
+  return true
+}

@@ -147,11 +147,11 @@ func testQuery() {
 func testTimeIndex() {
   ti := timeindex.New()
 
-  m1 := make(blob.MetaData)
-  m2 := make(blob.MetaData)
-  m3 := make(blob.MetaData)
-  m4 := make(blob.MetaData)
-  m5 := make(blob.MetaData)
+  m1 := map[string]string{}
+  m2 := map[string]string{}
+  m3 := map[string]string{}
+  m4 := map[string]string{}
+  m5 := map[string]string{}
 
   b1, _ := blob.Marshal(m1)
   time.Sleep(time.Second * 1)
@@ -165,9 +165,9 @@ func testTimeIndex() {
 
   ti.Notify(b1, b2, b3, b4, b5)
 
-  var m blob.MetaData
+  var m map[string]string
   blob.Unmarshal(b4, &m)
-  t, _ := time.Parse(blob.TimeFormat, m[blob.Timestamp].(string))
+  t, _ := time.Parse(blob.TimeFormat, m[blob.Timestamp])
 
   i := ti.IndexNear(t.Add(time.Millisecond * -1))
   ref := ti.RefAt(i)

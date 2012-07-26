@@ -11,6 +11,8 @@ import (
   "github.com/rwcarlsen/cas/app"
 )
 
+const myType = "note-drop"
+
 func Handle(cx *app.Context, w http.ResponseWriter, r *http.Request) {
   defer util.DeferWrite(w)
 
@@ -32,11 +34,11 @@ func putnote(cx *app.Context, w http.ResponseWriter, req *http.Request) {
   body, err := ioutil.ReadAll(req.Body)
   util.Check(err)
 
-  var note blob.MetaData
+  var note map[string]interface{}
   err = json.Unmarshal(body, &note)
   util.Check(err)
 
-  note["RcasType"] = blob.MetaNode
+  note[blob.Type] = myType
 
   b, err := blob.Marshal(note)
   util.Check(err)
