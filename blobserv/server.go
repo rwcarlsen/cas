@@ -44,7 +44,7 @@ const (
 )
 
 var (
-  DupIndexNameErr = errors.New("blobserv: index name already exists.")
+  DupIndexNameErr = errors.New("blobserv: index name already exists")
 )
 
 func ListenAndServe(addr string, dbPath string) error {

@@ -10,6 +10,8 @@ import (
   "net/http"
   "errors"
   "github.com/rwcarlsen/cas/blob"
+  "github.com/rwcarlsen/cas/timeindex"
+  "github.com/rwcarlsen/cas/objindex"
 )
 
 type Client struct {
@@ -157,5 +159,14 @@ func (c *Client) IndexBlobs(name string, nBlobs int, params interface{}) (blobs 
   }
 
   return blobs, nil
+}
+
+func (c *Client) ObjectTip(objref string) (b *blob.Blob, err error) {
+  objReq := objindex.Request{ObjectRef:objref}
+  blobs, err := c.IndexBlobs("object", 1, objReq)
+  if err != nil {
+    return nil, err
+  }
+  return blobs[0]
 }
 

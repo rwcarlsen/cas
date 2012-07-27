@@ -6,14 +6,14 @@ import (
   "strings"
   "mime"
   "net/http"
+  "html/template"
+  "path"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/blobserv"
   "github.com/rwcarlsen/cas/timeindex"
   "github.com/rwcarlsen/cas/objindex"
   "github.com/rwcarlsen/cas/appserver/pics/photos"
-  "html/template"
-  "path"
 )
 
 var tmpl *template.Template
@@ -42,7 +42,7 @@ func Handle(nc *blobserv.Client, w http.ResponseWriter, r *http.Request) {
     ref = ref[:len(ref)-len(path.Ext(ref))]
 
     p := picForObj(ref)
-    fref := tip(p.FileObjRef).Ref()
+    fref := c.ObjectTip(p.FileObjRef).Ref()
 
     m, data, err := c.ReconstituteFile(fref)
     util.Check(err)
@@ -116,18 +116,11 @@ func loadPicIndex() {
 }
 
 func picForObj(ref string) *photos.Photo {
-  b := tip(ref)
+  b := c.ObjectTip(ref)
   p := photos.NewPhoto()
   err := blob.Unmarshal(b, p)
   util.Check(err)
   return p
-}
-
-func tip(objref string) *blob.Blob {
-  objReq := objindex.Request{ObjectRef:objref}
-  blobs, err := c.IndexBlobs("object", 1, objReq)
-  util.Check(err)
-  return blobs[0]
 }
 
 func picLinks(refs []string) map[string]*photos.Photo {
