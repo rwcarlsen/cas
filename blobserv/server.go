@@ -3,6 +3,7 @@ package blobserv
 
 import (
   "fmt"
+  "sort"
   "time"
   "strconv"
   "errors"
@@ -17,11 +18,13 @@ import (
   "github.com/rwcarlsen/cas/index"
   "github.com/rwcarlsen/cas/auth"
   "github.com/rwcarlsen/cas/util"
+  "github.com/rwcarlsen/cas/timeindex"
+  "github.com/rwcarlsen/cas/objindex"
 )
 
 const (
-  defaultDb = "~/.rcas"
-  defaultAddr = "0.0.0.0:7777"
+  DefaultDb = "~/.rcas"
+  DefaultAddr = "0.0.0.0:7777"
   defaultReadTimeout = 60 * time.Second
   defaultWriteTimeout = 60 * time.Second
   defaultHeaderMax = 1 << 20 // 1 Mb
@@ -44,13 +47,41 @@ var (
   DupIndexNameErr = errors.New("blobserv: index name already exists.")
 )
 
-type BlobServer struct {
+func ListenAndServe(addr string, dbPath string) error {
+  db, _ := blobdb.New(dbPath)
+  tInd := timeindex.New()
+  oInd := objindex.New()
+  for b := range db.Walk() {
+    tInd.Notify(b)
+    oInd.Notify(b)
+  }
+  sort.Sort(tInd)
+  oInd.Sort()
+
+  serv := defaultHttpServer()
+  serv.Addr = addr
+  bs := Server{Db: db, Serv: serv}
+  bs.AddIndex("time", tInd)
+  bs.AddIndex("object", oInd)
+  return bs.ListenAndServe()
+}
+
+type Server struct {
   Db *blobdb.Dbase
   Serv *http.Server
   inds map[string]index.Index
 }
 
-func (bs *BlobServer) AddIndex(name string, ind index.Index) error {
+func defaultHttpServer() *http.Server {
+  return &http.Server{
+    Addr: DefaultAddr,
+    ReadTimeout: defaultReadTimeout,
+    WriteTimeout: defaultWriteTimeout,
+    MaxHeaderBytes: defaultHeaderMax,
+  }
+}
+
+func (bs *Server) AddIndex(name string, ind index.Index) error {
   if bs.inds == nil {
     bs.inds = make(map[string]index.Index, 0)
   } else {
@@ -63,28 +94,23 @@ func (bs *BlobServer) AddIndex(name string, ind index.Index) error {
   return nil
 }
 
-func (bs *BlobServer) notify(blobs ...*blob.Blob) {
+func (bs *Server) notify(blobs ...*blob.Blob) {
   for _, ind := range bs.inds {
     ind.Notify(blobs...)
   }
 }
 
-func (bs *BlobServer) ListenAndServe() error {
+func (bs *Server) ListenAndServe() error {
   if bs.inds == nil {
     bs.inds = make(map[string]index.Index, 0)
   }
 
   if bs.Db == nil {
-    bs.Db, _ = blobdb.New(defaultDb)
+    bs.Db, _ = blobdb.New(DefaultDb)
   }
 
   if bs.Serv == nil {
-    bs.Serv = &http.Server{
-      Addr: defaultAddr,
-      ReadTimeout: defaultReadTimeout,
-      WriteTimeout: defaultWriteTimeout,
-      MaxHeaderBytes: defaultHeaderMax,
-    }
+    bs.Serv = defaultHttpServer()
   }
 
   http.Handle("/", &defHandler{})
@@ -104,7 +130,7 @@ func (h *defHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 type getHandler struct {
-  bs *BlobServer
+  bs *Server
 }
 
 func (h *getHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -126,7 +152,7 @@ func (h *getHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 type putHandler struct {
-  bs *BlobServer
+  bs *Server
 }
 
 func (h *putHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -150,7 +176,7 @@ func (h *putHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 type indexHandler struct {
-  bs *BlobServer
+  bs *Server
 }
 
 func (h *indexHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -194,7 +220,7 @@ func (h *indexHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 type shareHandler struct {
-  bs *BlobServer
+  bs *Server
 }
 
 func (h *shareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {

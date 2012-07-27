@@ -3,15 +3,14 @@ package main
 
 import (
   "fmt"
-  "sort"
   "time"
   "os"
+  "log"
   "path/filepath"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
   "github.com/rwcarlsen/cas/blobserv"
   "github.com/rwcarlsen/cas/timeindex"
-  "github.com/rwcarlsen/cas/objindex"
 )
 
 var (
@@ -190,25 +189,5 @@ func testTimeIndex() {
 
 func testBlobServer() {
   fmt.Println("testing blob server:")
-  db, _ := blobdb.New(dbpath)
-
-  tInd := timeindex.New()
-  oInd := objindex.New()
-  fmt.Println("walking db")
-  for b := range db.Walk() {
-    tInd.Notify(b)
-    oInd.Notify(b)
-  }
-  sort.Sort(tInd)
-  oInd.Sort()
-  fmt.Println("done walking")
-
-  bs := blobserv.BlobServer{Db: db}
-  bs.AddIndex("time", tInd)
-  bs.AddIndex("object", oInd)
-  fmt.Println("starting http server...")
-  err := bs.ListenAndServe()
-  if err != nil {
-    fmt.Println(err)
-  }
+  log.Fatal(blobserv.ListenAndServe(blobserv.DefaultAddr, blobserv.DefaultDb))
 }
