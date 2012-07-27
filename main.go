@@ -9,7 +9,7 @@ import (
   "path/filepath"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
-  "github.com/rwcarlsen/cas/blobserver"
+  "github.com/rwcarlsen/cas/blobserv"
   "github.com/rwcarlsen/cas/timeindex"
   "github.com/rwcarlsen/cas/objindex"
 )
@@ -203,7 +203,7 @@ func testBlobServer() {
   oInd.Sort()
   fmt.Println("done walking")
 
-  bs := blobserver.BlobServer{Db: db}
+  bs := blobserv.BlobServer{Db: db}
   bs.AddIndex("time", tInd)
   bs.AddIndex("object", oInd)
   fmt.Println("starting http server...")

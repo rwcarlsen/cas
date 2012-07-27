@@ -1,5 +1,5 @@
 
-package app
+package blobserv
 
 import (
   "bytes"
@@ -10,25 +10,22 @@ import (
   "net/http"
   "errors"
   "github.com/rwcarlsen/cas/blob"
-  "github.com/rwcarlsen/cas/blobserver"
 )
 
-type HandleFunc func(*Context, http.ResponseWriter, *http.Request)
-
-type Context struct {
-  BlobServerHost string
+type Client struct {
+  Host string
   User string
   Pass string
 }
 
-func (cx *Context) setAuth(r *http.Request) {
-  if cx.User + cx.Pass != "" {
-    r.SetBasicAuth(cx.User, cx.Pass)
+func (c *Client) setAuth(r *http.Request) {
+  if c.User + c.Pass != "" {
+    r.SetBasicAuth(c.User, c.Pass)
   }
 }
 
-func (cx *Context) GetBlob(ref string) (b *blob.Blob, err error) {
-  data, err := cx.GetBlobContent(ref)
+func (c *Client) GetBlob(ref string) (b *blob.Blob, err error) {
+  data, err := c.GetBlobContent(ref)
   if err != nil {
     return nil, err
   }
@@ -36,14 +33,14 @@ func (cx *Context) GetBlob(ref string) (b *blob.Blob, err error) {
   return blob.NewRaw(data), nil
 }
 
-func (cx *Context) GetBlobContent(ref string) (content []byte, err error) {
-  r, err := http.NewRequest("GET", cx.BlobServerHost, nil)
+func (c *Client) GetBlobContent(ref string) (content []byte, err error) {
+  r, err := http.NewRequest("GET", c.Host, nil)
   if err != nil {
     return nil, err
   }
 
   r.URL.Path = "/ref/" + ref
-  cx.setAuth(r)
+  c.setAuth(r)
 
   client := &http.Client{}
   resp, err := client.Do(r)
@@ -51,8 +48,8 @@ func (cx *Context) GetBlobContent(ref string) (content []byte, err error) {
     return content, err
   }
 
-  status := resp.Header.Get(blobserver.ActionStatus)
-  if status == blobserver.ActionFailed {
+  status := resp.Header.Get(ActionStatus)
+  if status == ActionFailed {
     return content, errors.New("app: blob retrieval failed")
   }
 
@@ -65,8 +62,8 @@ func (cx *Context) GetBlobContent(ref string) (content []byte, err error) {
   return content, nil
 }
 
-func (cx *Context) ReconstituteFile(ref string) (m *blob.FileMeta, content []byte, err error) {
-  b, err := cx.GetBlob(ref)
+func (c *Client) ReconstituteFile(ref string) (m *blob.FileMeta, content []byte, err error) {
+  b, err := c.GetBlob(ref)
   if err != nil {
     return nil, nil, err
   }
@@ -79,7 +76,7 @@ func (cx *Context) ReconstituteFile(ref string) (m *blob.FileMeta, content []byt
 
   chunks := []*blob.Blob{}
   for _, ref := range m.ContentRefs {
-    b, err := cx.GetBlob(ref)
+    b, err := c.GetBlob(ref)
     if err != nil {
       return nil, nil, err
     }
@@ -89,43 +86,43 @@ func (cx *Context) ReconstituteFile(ref string) (m *blob.FileMeta, content []byt
   return m, blob.Reconstitute(chunks...), nil
 }
 
-func (cx *Context) PutBlob(b *blob.Blob) error {
-  r, err := http.NewRequest("POST", cx.BlobServerHost, bytes.NewBuffer(b.Content()))
+func (c *Client) PutBlob(b *blob.Blob) error {
+  r, err := http.NewRequest("POST", c.Host, bytes.NewBuffer(b.Content()))
   if err != nil {
     return err
   }
 
   r.URL.Path = "/put/"
-  cx.setAuth(r)
+  c.setAuth(r)
   client := &http.Client{}
   resp, err := client.Do(r)
   if err != nil {
     return err
   }
 
-  status := resp.Header.Get(blobserver.ActionStatus)
-  if status == blobserver.ActionFailed {
+  status := resp.Header.Get(ActionStatus)
+  if status == ActionFailed {
     return errors.New("app: blob posting failed")
   }
 
   return nil
 }
 
-func (cx *Context) IndexBlobs(name string, nBlobs int, params interface{}) (blobs []*blob.Blob, err error) {
+func (c *Client) IndexBlobs(name string, nBlobs int, params interface{}) (blobs []*blob.Blob, err error) {
   data, err := json.Marshal(params)
   if err != nil {
     return nil, err
   }
 
-  r, err := http.NewRequest("POST", cx.BlobServerHost, bytes.NewBuffer(data))
+  r, err := http.NewRequest("POST", c.Host, bytes.NewBuffer(data))
   if err != nil {
     return nil, err
   }
 
   r.URL.Path = "/index/"
-  r.Header.Set(blobserver.IndexField, name)
-  r.Header.Set(blobserver.ResultCountField, strconv.Itoa(nBlobs))
-  cx.setAuth(r)
+  r.Header.Set(IndexField, name)
+  r.Header.Set(ResultCountField, strconv.Itoa(nBlobs))
+  c.setAuth(r)
 
   client := &http.Client{}
   resp, err := client.Do(r)
@@ -133,7 +130,7 @@ func (cx *Context) IndexBlobs(name string, nBlobs int, params interface{}) (blob
     return nil, err
   }
 
-  boundary := resp.Header.Get(blobserver.BoundaryField)
+  boundary := resp.Header.Get(BoundaryField)
   mr := multipart.NewReader(resp.Body, boundary)
 
   blobs = []*blob.Blob{}

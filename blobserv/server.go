@@ -1,5 +1,5 @@
 
-package blobserver
+package blobserv
 
 import (
   "fmt"
@@ -41,7 +41,7 @@ const (
 )
 
 var (
-  DupIndexNameErr = errors.New("blobserver: index name already exists.")
+  DupIndexNameErr = errors.New("blobserv: index name already exists.")
 )
 
 type BlobServer struct {

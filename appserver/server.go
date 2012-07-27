@@ -9,7 +9,7 @@ import (
   "html/template"
   "io/ioutil"
   "github.com/rwcarlsen/cas/util"
-  "github.com/rwcarlsen/cas/app"
+  "github.com/rwcarlsen/cas/blobserv"
   "github.com/rwcarlsen/cas/appserver/notedrop"
   "github.com/rwcarlsen/cas/appserver/fupload"
   "github.com/rwcarlsen/cas/appserver/recent"
@@ -17,18 +17,20 @@ import (
 )
 
 const tmplDir = "templates"
-var defaultContext *app.Context = &app.Context{"http://rwc-server.dyndns.org:7777", "robert", "password"}
+var defaultClient *blobserv.Client = &blobserv.Client{"http://rwc-server.dyndns.org:7777", "robert", "password"}
+
+type HandleFunc func(*blobserv.Client, http.ResponseWriter, *http.Request)
 
 //// add new apps by listing them here in this init func
 func init() {
-  handlers = map[string]app.HandleFunc{}
+  handlers = map[string]HandleFunc{}
   handlers["notedrop"] = notedrop.Handle
   handlers["fupload"] = fupload.Handle
   handlers["recent"] = recent.Handle
   handlers["pics"] = pics.Handle
 }
 
-var handlers map[string]app.HandleFunc
+var handlers map[string]HandleFunc
 var tmpl *template.Template
 var applist []string
 func init() {
@@ -79,7 +81,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     if notAjax && notStatic {
       w.Write(header)
     }
-    handlers[base](defaultContext, w, r)
+    handlers[base](defaultClient, w, r)
     if notAjax && notStatic {
       w.Write(footer)
     }

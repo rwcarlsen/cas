@@ -9,10 +9,10 @@ import (
   "mime/multipart"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/util"
-  "github.com/rwcarlsen/cas/app"
+  "github.com/rwcarlsen/cas/blobserv"
 )
 
-func Handle(cx *app.Context, w http.ResponseWriter, r *http.Request) {
+func Handle(c *blobserv.Client, w http.ResponseWriter, r *http.Request) {
   defer util.DeferWrite(w)
 
   pth := strings.Trim(r.URL.Path, "/")
@@ -20,14 +20,14 @@ func Handle(cx *app.Context, w http.ResponseWriter, r *http.Request) {
     err := util.LoadStatic("fupload/index.html", w)
     util.Check(err)
   } else if pth == "fupload/putfiles" {
-    putfiles(cx, w, r)
+    putfiles(c, w, r)
   } else {
     err := util.LoadStatic(pth, w)
     util.Check(err)
   }
 }
 
-func putfiles(cx *app.Context, w http.ResponseWriter, req *http.Request) {
+func putfiles(c *blobserv.Client, w http.ResponseWriter, req *http.Request) {
   defer util.DeferPrint()
 
 	mr, err := req.MultipartReader()
@@ -41,7 +41,7 @@ func putfiles(cx *app.Context, w http.ResponseWriter, req *http.Request) {
     } else if part.FileName() == "" {
       continue
     }
-    resp := sendFileBlobs(cx, part)
+    resp := sendFileBlobs(c, part)
     resps = append(resps, resp)
 		part, err = mr.NextPart()
 	}
@@ -50,7 +50,7 @@ func putfiles(cx *app.Context, w http.ResponseWriter, req *http.Request) {
   w.Write(data)
 }
 
-func sendFileBlobs(cx *app.Context, part *multipart.Part) (respMeta map[string]interface{}) {
+func sendFileBlobs(c *blobserv.Client, part *multipart.Part) (respMeta map[string]interface{}) {
   meta := blob.NewFileMeta()
   defer func() {
     respMeta = map[string]interface{}{}
@@ -79,7 +79,7 @@ func sendFileBlobs(cx *app.Context, part *multipart.Part) (respMeta map[string]i
 
   blobs = append(blobs, m, obj)
   for _, b := range blobs {
-    err = cx.PutBlob(b)
+    err = c.PutBlob(b)
     util.Check(err)
   }
 

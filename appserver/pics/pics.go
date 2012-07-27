@@ -8,7 +8,7 @@ import (
   "net/http"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/util"
-  "github.com/rwcarlsen/cas/app"
+  "github.com/rwcarlsen/cas/blobserv"
   "github.com/rwcarlsen/cas/timeindex"
   "github.com/rwcarlsen/cas/objindex"
   "github.com/rwcarlsen/cas/appserver/pics/photos"
@@ -22,10 +22,10 @@ func init() {
 }
 
 var picIndex *photos.Index
-var cx *app.Context
-func Handle(ncx *app.Context, w http.ResponseWriter, r *http.Request) {
+var c *blobserv.Client
+func Handle(nc *blobserv.Client, w http.ResponseWriter, r *http.Request) {
   defer util.DeferWrite(w)
-  cx = ncx
+  c = nc
 
   if picIndex == nil {
     loadPicIndex()
@@ -44,7 +44,7 @@ func Handle(ncx *app.Context, w http.ResponseWriter, r *http.Request) {
     p := picForObj(ref)
     fref := tip(p.FileObjRef).Ref()
 
-    m, data, err := cx.ReconstituteFile(fref)
+    m, data, err := c.ReconstituteFile(fref)
     util.Check(err)
 
     ext := path.Ext(m.Name)
@@ -58,19 +58,19 @@ func Handle(ncx *app.Context, w http.ResponseWriter, r *http.Request) {
 
 func updateIndex() {
   indReq := timeindex.Request{
-    Time: picIndex.LastUpdate
+    Time: picIndex.LastUpdate,
     Dir:timeindex.Forward,
   }
 
   nBlobs := 50
   for skip := 0; true; skip += nBlobs {
     indReq.SkipN = skip
-    blobs, err := cx.IndexBlobs("time", nBlobs, indReq)
+    blobs, err := c.IndexBlobs("time", nBlobs, indReq)
     if err != nil {
       break
     }
 
-    picIndex.Notify(blobs...)
+    //picIndex.Notify(blobs...)
 
     if len(blobs) < nBlobs {
       break
@@ -88,7 +88,7 @@ func loadPicIndex() {
   nBlobs := 10
   for skip := 0; true; skip += nBlobs {
     indReq.SkipN = skip
-    blobs, err := cx.IndexBlobs("time", nBlobs, indReq)
+    blobs, err := c.IndexBlobs("time", nBlobs, indReq)
     if err != nil {
       break
     }
@@ -109,7 +109,7 @@ func loadPicIndex() {
   picIndex = photos.NewIndex()
   obj := blob.NewObject()
   picIndex.RcasObjectRef = obj.Ref()
-  err := cx.PutBlob(obj)
+  err := c.PutBlob(obj)
   if err != nil {
     panic("pics: could not create photo index")
   }
@@ -125,7 +125,7 @@ func picForObj(ref string) *photos.Photo {
 
 func tip(objref string) *blob.Blob {
   objReq := objindex.Request{ObjectRef:objref}
-  blobs, err := cx.IndexBlobs("object", 1, objReq)
+  blobs, err := c.IndexBlobs("object", 1, objReq)
   util.Check(err)
   return blobs[0]
 }
@@ -138,12 +138,3 @@ func picLinks(refs []string) map[string]*photos.Photo {
   return links
 }
 
-func validImageFile(m *blob.FileMeta) bool {
-  if m.RcasType != blob.File {
-    return false
-  }
-  switch strings.ToLower(path.Ext(m.Name)) {
-    case ".jpg", ".jpeg", ".gif", ".png": return true
-  }
-  return false
-}

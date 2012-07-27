@@ -9,7 +9,7 @@ import (
   "encoding/json"
   "html/template"
   "github.com/rwcarlsen/cas/util"
-  "github.com/rwcarlsen/cas/app"
+  "github.com/rwcarlsen/cas/blobserv"
   "github.com/rwcarlsen/cas/timeindex"
 )
 
@@ -18,12 +18,12 @@ func init() {
   tmpl = template.Must(template.ParseFiles("recent/index.tmpl"))
 }
 
-func Handle(cx *app.Context, w http.ResponseWriter, r *http.Request) {
+func Handle(c *blobserv.Client, w http.ResponseWriter, r *http.Request) {
   defer util.DeferWrite(w)
 
   pth := strings.Trim(r.URL.Path, "/")
   if pth == "recent" {
-    data := stripBlobs(cx)
+    data := stripBlobs(c)
     err := tmpl.Execute(w, data)
     util.Check(err)
   } else {
@@ -37,12 +37,12 @@ type shortblob struct {
   Content string
 }
 
-func stripBlobs(cx *app.Context) []*shortblob {
+func stripBlobs(c *blobserv.Client) []*shortblob {
   indReq := timeindex.Request{
     Time: time.Now(),
     Dir:timeindex.Backward,
   }
-  blobs, err := cx.IndexBlobs("time", 20, indReq)
+  blobs, err := c.IndexBlobs("time", 20, indReq)
   util.Check(err)
 
   short := []*shortblob{}

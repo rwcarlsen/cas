@@ -8,12 +8,12 @@ import (
   "encoding/json"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/util"
-  "github.com/rwcarlsen/cas/app"
+  "github.com/rwcarlsen/cas/blobserv"
 )
 
 const myType = "note-drop"
 
-func Handle(cx *app.Context, w http.ResponseWriter, r *http.Request) {
+func Handle(c *blobserv.Client, w http.ResponseWriter, r *http.Request) {
   defer util.DeferWrite(w)
 
   pth := strings.Trim(r.URL.Path, "/")
@@ -21,14 +21,14 @@ func Handle(cx *app.Context, w http.ResponseWriter, r *http.Request) {
     err := util.LoadStatic("notedrop/index.html", w)
     util.Check(err)
   } else if pth == "notedrop/putnote" {
-    putnote(cx, w, r)
+    putnote(c, w, r)
   } else {
     err := util.LoadStatic(pth, w)
     util.Check(err)
   }
 }
 
-func putnote(cx *app.Context, w http.ResponseWriter, req *http.Request) {
+func putnote(c *blobserv.Client, w http.ResponseWriter, req *http.Request) {
   defer util.DeferWrite(w)
 
   body, err := ioutil.ReadAll(req.Body)
@@ -43,7 +43,7 @@ func putnote(cx *app.Context, w http.ResponseWriter, req *http.Request) {
   b, err := blob.Marshal(note)
   util.Check(err)
 
-  err = cx.PutBlob(b)
+  err = c.PutBlob(b)
   util.Check(err)
 
   w.Write(b.Content())
