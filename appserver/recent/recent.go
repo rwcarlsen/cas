@@ -10,7 +10,6 @@ import (
   "html/template"
   "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/blobserv"
-  "github.com/rwcarlsen/cas/timeindex"
 )
 
 var tmpl *template.Template
@@ -38,11 +37,7 @@ type shortblob struct {
 }
 
 func stripBlobs(c *blobserv.Client) []*shortblob {
-  indReq := timeindex.Request{
-    Time: time.Now(),
-    Dir:timeindex.Backward,
-  }
-  blobs, err := c.IndexBlobs("time", 20, indReq)
+  blobs, err := c.BlobsBackward(time.Now(), 20, 0)
   util.Check(err)
 
   short := []*shortblob{}

@@ -11,8 +11,6 @@ import (
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/blobserv"
-  "github.com/rwcarlsen/cas/timeindex"
-  "github.com/rwcarlsen/cas/objindex"
   "github.com/rwcarlsen/cas/appserver/pics/photos"
 )
 
@@ -42,9 +40,10 @@ func Handle(nc *blobserv.Client, w http.ResponseWriter, r *http.Request) {
     ref = ref[:len(ref)-len(path.Ext(ref))]
 
     p := picForObj(ref)
-    fref := c.ObjectTip(p.FileObjRef).Ref()
+    fblob, err := c.ObjectTip(p.FileObjRef)
+    util.Check(err)
 
-    m, data, err := c.ReconstituteFile(fref)
+    m, data, err := c.ReconstituteFile(fblob.Ref())
     util.Check(err)
 
     ext := path.Ext(m.Name)
@@ -57,15 +56,9 @@ func Handle(nc *blobserv.Client, w http.ResponseWriter, r *http.Request) {
 }
 
 func updateIndex() {
-  indReq := timeindex.Request{
-    Time: picIndex.LastUpdate,
-    Dir:timeindex.Forward,
-  }
-
   nBlobs := 50
   for skip := 0; true; skip += nBlobs {
-    indReq.SkipN = skip
-    blobs, err := c.IndexBlobs("time", nBlobs, indReq)
+    blobs, err := c.BlobsForward(picIndex.LastUpdate, nBlobs, skip)
     if err != nil {
       break
     }
@@ -76,19 +69,12 @@ func updateIndex() {
       break
     }
   }
-  
 }
 
 func loadPicIndex() {
-  indReq := timeindex.Request{
-    Time: time.Now(),
-    Dir:timeindex.Backward,
-  }
-
   nBlobs := 10
   for skip := 0; true; skip += nBlobs {
-    indReq.SkipN = skip
-    blobs, err := c.IndexBlobs("time", nBlobs, indReq)
+    blobs, err := c.BlobsBackward(time.Now(), nBlobs, skip)
     if err != nil {
       break
     }
@@ -116,9 +102,10 @@ func loadPicIndex() {
 }
 
 func picForObj(ref string) *photos.Photo {
-  b := c.ObjectTip(ref)
+  b, err := c.ObjectTip(ref)
+  util.Check(err)
   p := photos.NewPhoto()
-  err := blob.Unmarshal(b, p)
+  err = blob.Unmarshal(b, p)
   util.Check(err)
   return p
 }

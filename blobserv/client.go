@@ -3,6 +3,7 @@ package blobserv
 
 import (
   "bytes"
+  "time"
   "strconv"
   "mime/multipart"
   "encoding/json"
@@ -161,12 +162,30 @@ func (c *Client) IndexBlobs(name string, nBlobs int, params interface{}) (blobs 
   return blobs, nil
 }
 
+func (c *Client) BlobsBackward(t time.Time, n, nskip int) (b []*blob.Blob, err error) {
+  indReq := timeindex.Request{
+    Time: t,
+    Dir:timeindex.Backward,
+    SkipN: nskip,
+  }
+  return c.IndexBlobs("time", n, &indReq)
+}
+
+func (c *Client) BlobsForward(t time.Time, n, nskip int) (b []*blob.Blob, err error) {
+  indReq := timeindex.Request{
+    Time: t,
+    Dir:timeindex.Forward,
+    SkipN: nskip,
+  }
+  return c.IndexBlobs("time", n, &indReq)
+}
+
 func (c *Client) ObjectTip(objref string) (b *blob.Blob, err error) {
   objReq := objindex.Request{ObjectRef:objref}
   blobs, err := c.IndexBlobs("object", 1, objReq)
   if err != nil {
     return nil, err
   }
-  return blobs[0]
+  return blobs[0], nil
 }
 
