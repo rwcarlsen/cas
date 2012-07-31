@@ -17,9 +17,8 @@ type FileMeta struct {
   RcasObjectRef string
   Name string
   Path string
-  Notes string
+  Notes map[string]string
   Size int64
-  ModTime time.Time
   ContentRefs []string
 }
 
@@ -63,6 +62,14 @@ func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
   m.ContentRefs = RefsFor(chunks)
 
   return chunks, nil
+}
+
+// AddNotes allows arbitrary meta-data to be attached to any file.
+//
+// This should be used by apps to make valueable meta-data accessible to any app
+// that tries to use/find the file.
+func (m *FileMeta) AddNotes(id, data string) {
+  m.Notes[id] = data
 }
 
 // SplitFile creates blobs by splitting data into blockSize (bytes) chunks
