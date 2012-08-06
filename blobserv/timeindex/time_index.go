@@ -9,7 +9,7 @@ import (
   "sync"
   "net/http"
   "github.com/rwcarlsen/cas/blob"
-  "github.com/rwcarlsen/cas/index"
+  "github.com/rwcarlsen/cas/blobserv/index"
 )
 
 type Direc int

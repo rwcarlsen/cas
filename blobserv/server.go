@@ -15,7 +15,7 @@ import (
   "mime/multipart"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
-  "github.com/rwcarlsen/cas/index"
+  "github.com/rwcarlsen/cas/blobserv/index"
   "github.com/rwcarlsen/cas/auth"
   "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/blobserv/timeindex"

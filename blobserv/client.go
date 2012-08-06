@@ -27,16 +27,15 @@ func (c *Client) setAuth(r *http.Request) {
   }
 }
 
-func (c *Client) GetBlob(ref string) (b *blob.Blob, err error) {
+func (c *Client) GetBlob(ref string) (*blob.Blob, error) {
   data, err := c.GetBlobContent(ref)
   if err != nil {
     return nil, err
   }
-
   return blob.NewRaw(data), nil
 }
 
-func (c *Client) GetBlobContent(ref string) (content []byte, err error) {
+func (c *Client) GetBlobContent(ref string) ([]byte, error) {
   r, err := http.NewRequest("GET", c.Host, nil)
   if err != nil {
     return nil, err
@@ -48,17 +47,17 @@ func (c *Client) GetBlobContent(ref string) (content []byte, err error) {
   client := &http.Client{}
   resp, err := client.Do(r)
   if err != nil {
-    return content, err
+    return nil, err
   }
 
   status := resp.Header.Get(ActionStatus)
   if status == ActionFailed {
-    return content, errors.New("app: blob retrieval failed")
+    return nil, errors.New("app: blob retrieval failed")
   }
 
-  content, err = ioutil.ReadAll(resp.Body)
+  content, err := ioutil.ReadAll(resp.Body)
   if err != nil {
-    return content, err
+    return nil, err
   }
 
   resp.Body.Close()
@@ -111,7 +110,7 @@ func (c *Client) PutBlob(b *blob.Blob) error {
   return nil
 }
 
-func (c *Client) IndexBlobs(name string, nBlobs int, params interface{}) (blobs []*blob.Blob, err error) {
+func (c *Client) IndexBlobs(name string, nBlobs int, params interface{}) ([]*blob.Blob, error) {
   data, err := json.Marshal(params)
   if err != nil {
     return nil, err
@@ -136,7 +135,7 @@ func (c *Client) IndexBlobs(name string, nBlobs int, params interface{}) (blobs 
   boundary := resp.Header.Get(BoundaryField)
   mr := multipart.NewReader(resp.Body, boundary)
 
-  blobs = []*blob.Blob{}
+  blobs := []*blob.Blob{}
 	for {
 		part, err := mr.NextPart()
     if err != nil {
@@ -162,7 +161,7 @@ func (c *Client) IndexBlobs(name string, nBlobs int, params interface{}) (blobs 
   return blobs, nil
 }
 
-func (c *Client) BlobsBackward(t time.Time, n, nskip int) (b []*blob.Blob, err error) {
+func (c *Client) BlobsBackward(t time.Time, n, nskip int) ([]*blob.Blob, error) {
   indReq := timeindex.Request{
     Time: t,
     Dir:timeindex.Backward,
@@ -171,7 +170,7 @@ func (c *Client) BlobsBackward(t time.Time, n, nskip int) (b []*blob.Blob, err e
   return c.IndexBlobs("time", n, &indReq)
 }
 
-func (c *Client) BlobsForward(t time.Time, n, nskip int) (b []*blob.Blob, err error) {
+func (c *Client) BlobsForward(t time.Time, n, nskip int) ([]*blob.Blob, error) {
   indReq := timeindex.Request{
     Time: t,
     Dir:timeindex.Forward,
@@ -180,7 +179,7 @@ func (c *Client) BlobsForward(t time.Time, n, nskip int) (b []*blob.Blob, err er
   return c.IndexBlobs("time", n, &indReq)
 }
 
-func (c *Client) ObjectTip(objref string) (b *blob.Blob, err error) {
+func (c *Client) ObjectTip(objref string) (*blob.Blob, error) {
   objReq := objindex.Request{ObjectRef:objref}
   blobs, err := c.IndexBlobs("object", 1, objReq)
   if err != nil {

@@ -11,7 +11,7 @@ import (
   "net/http"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/util"
-  "github.com/rwcarlsen/cas/index"
+  "github.com/rwcarlsen/cas/blobserv/index"
 )
 
 type Request struct {
