@@ -39,8 +39,7 @@ func Handle(nc *blobserv.Client, w http.ResponseWriter, r *http.Request) {
     ref := path.Base(pth)
     ref = ref[:len(ref)-len(path.Ext(ref))]
 
-    p := picForObj(ref)
-    fblob, err := c.ObjectTip(p.FileObjRef)
+    fblob, err := c.ObjectTip(ref)
     util.Check(err)
 
     m, data, err := c.ReconstituteFile(fblob.Ref())
@@ -104,7 +103,7 @@ func loadPicIndex() {
 func picForObj(ref string) *photos.Photo {
   b, err := c.ObjectTip(ref)
   util.Check(err)
-  p := photos.NewPhoto()
+  p := &photos.Photo{}
   err = blob.Unmarshal(b, p)
   util.Check(err)
   return p
@@ -113,7 +112,8 @@ func picForObj(ref string) *photos.Photo {
 func picLinks(refs []string) map[string]*photos.Photo {
   links := map[string]*photos.Photo{}
   for _, ref := range refs {
-    links["ref/" + ref + ".photo"] = picForObj(ref)
+    // fix this to not be a blank photo TODO
+    links["ref/" + ref + ".photo"] = &photos.Photo{}
   }
   return links
 }

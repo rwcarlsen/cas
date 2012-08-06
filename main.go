@@ -6,16 +6,17 @@ import (
   "time"
   "os"
   "log"
-  "path/filepath"
+  //"path/filepath"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
   "github.com/rwcarlsen/cas/blobserv"
+  "github.com/rwcarlsen/cas/query"
   "github.com/rwcarlsen/cas/blobserv/timeindex"
 )
 
 var (
   home string = os.Getenv("HOME")
-  dbpath = filepath.Join(home, ".rcas")
+  dbpath = "./testdb" //blobserv.DefaultDb
 
   testdirpath = "./foodir"
   testfilepath = "./foodir/foo.txt"
@@ -25,7 +26,7 @@ var (
 func main() {
   //testRaw()
   //testFile()
-  //testDir()
+  testDir()
   //testQuery()
   //testTimeIndex()
   testBlobServer()
@@ -127,10 +128,10 @@ func testQuery() {
   b2 := blob.NewRaw([]byte("{\"key\":\"I am wrong json\"}"))
   b3 := blob.NewRaw([]byte("{\"key\":\"I am right json\"}"))
 
-  q := blobdb.NewQuery()
+  q := query.New()
 
-  isjson := q.NewFilter(blobdb.IsJson)
-  right := q.NewFilter(blobdb.Contains("right"))
+  isjson := q.NewFilter(query.IsJson)
+  right := q.NewFilter(query.Contains("right"))
 
   isjson.SendTo(right)
   q.SetRoots(isjson)
@@ -188,6 +189,7 @@ func testTimeIndex() {
 }
 
 func testBlobServer() {
-  fmt.Println("testing blob server:")
-  log.Fatal(blobserv.ListenAndServe(blobserv.DefaultAddr, blobserv.DefaultDb))
+  fmt.Println("running blob server...")
+  log.Fatal(blobserv.ListenAndServe(blobserv.DefaultAddr, dbpath))
 }
+

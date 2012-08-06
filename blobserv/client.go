@@ -52,7 +52,7 @@ func (c *Client) GetBlobContent(ref string) ([]byte, error) {
 
   status := resp.Header.Get(ActionStatus)
   if status == ActionFailed {
-    return nil, errors.New("app: blob retrieval failed")
+    return nil, errors.New("blobserv: blob retrieval failed")
   }
 
   content, err := ioutil.ReadAll(resp.Body)
@@ -104,7 +104,7 @@ func (c *Client) PutBlob(b *blob.Blob) error {
 
   status := resp.Header.Get(ActionStatus)
   if status == ActionFailed {
-    return errors.New("app: blob posting failed")
+    return errors.New("blobserv: blob posting failed")
   }
 
   return nil
@@ -155,7 +155,7 @@ func (c *Client) IndexBlobs(name string, nBlobs int, params interface{}) ([]*blo
 	}
 
   if len(blobs) == 0 {
-    return nil, errors.New("app: no blobs for that index query")
+    return nil, errors.New("blobserv: no blobs for that index query")
   }
 
   return blobs, nil

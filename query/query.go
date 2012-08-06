@@ -1,5 +1,5 @@
 
-package blobdb 
+package query
 
 import (
   "github.com/rwcarlsen/cas/blob"
@@ -58,18 +58,18 @@ type Query struct {
   done []chan bool
   roots []chan *blob.Blob
   skip chan *blob.Blob
-  Results []string
+  Results []*blob.Blob
   result chan *blob.Blob
 }
 
-func NewQuery() *Query {
+func New() *Query {
   return &Query{
       filters: make([]*Filter, 0),
       done: make([]chan bool, 0),
       roots: make([]chan *blob.Blob, 0),
       skip: make(chan *blob.Blob),
       result: make(chan *blob.Blob),
-      Results: make([]string, 0),
+      Results: make([]*blob.Blob, 0),
     }
 }
 
@@ -82,16 +82,16 @@ func (q *Query) Open() {
 // Clear resets a query's Results (as if no blobs had
 // been been processed)
 func (q *Query) Clear() {
-  q.Results = make([]string, 0)
+  q.Results = make([]*blob.Blob, 0)
 }
 
-// Close terminates and resets the query to blank (i.e. as returned by
-// NewQuery).  Neglecting to call Close results in hanging goroutines.
+// Close terminates the query but keeps its results and filters intact.
+//
+// Neglecting to call Close results in hanging goroutines.
 func (q *Query) Close() {
   for _, ch := range q.done {
     ch <- true
   }
-  q = NewQuery()
 }
 
 // Process passes blobs through the query's filter network and returns when
@@ -102,7 +102,7 @@ func (q *Query) Process(blobs ...*blob.Blob) {
       ch <- b
       select {
         case res := <-q.result:
-          q.Results = append(q.Results, res.Ref())
+          q.Results = append(q.Results, res)
         case <-q.skip:
       }
     }

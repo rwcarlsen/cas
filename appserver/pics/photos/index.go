@@ -41,15 +41,15 @@ func (ind *Index) Len() int {
 }
 
 // AddPhoto adds the objref of a photo to this index
-func (ind *Index) AddPhoto(p *Photo) {
+func (ind *Index) AddPhoto(objref string, p *Photo) {
   ind.lock.Lock()
   defer ind.lock.Unlock()
 
   for i := len(ind.PhotoRefs) - 1; i > 0; i-- {
-    if p.RcasObjectRef == ind.PhotoRefs[i] {
+    if objref == ind.PhotoRefs[i] {
       return
     }
   }
-  ind.PhotoRefs = append(ind.PhotoRefs, p.RcasObjectRef)
+  ind.PhotoRefs = append(ind.PhotoRefs, objref)
 }
 
