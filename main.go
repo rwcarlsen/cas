@@ -10,7 +10,7 @@ import (
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
   "github.com/rwcarlsen/cas/blobserv"
-  "github.com/rwcarlsen/cas/timeindex"
+  "github.com/rwcarlsen/cas/blobserv/timeindex"
 )
 
 var (

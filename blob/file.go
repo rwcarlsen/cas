@@ -5,7 +5,6 @@ import (
   "os"
   "path/filepath"
   "io/ioutil"
-  "time"
 )
 
 const (
@@ -31,7 +30,7 @@ func NewFileMeta() *FileMeta {
   }
 }
 
-// LoadFromPath fills in all meta fields (name, size, mod time, ...) by reading
+// LoadFromPath fills in all meta fields (name, size, etc. by reading
 // the info from the file located at path. Blobs constituting the file's bytes
 // are returned. AddContentRefs is invoked for all the blobs returned.
 func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
@@ -58,7 +57,6 @@ func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
   m.Name = stat.Name()
   m.Path = abs
   m.Size = stat.Size()
-  m.ModTime = stat.ModTime().UTC()
   m.ContentRefs = RefsFor(chunks)
 
   return chunks, nil

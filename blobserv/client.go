@@ -11,8 +11,8 @@ import (
   "net/http"
   "errors"
   "github.com/rwcarlsen/cas/blob"
-  "github.com/rwcarlsen/cas/timeindex"
-  "github.com/rwcarlsen/cas/objindex"
+  "github.com/rwcarlsen/cas/blobserv/timeindex"
+  "github.com/rwcarlsen/cas/blobserv/objindex"
 )
 
 type Client struct {

@@ -18,8 +18,8 @@ import (
   "github.com/rwcarlsen/cas/index"
   "github.com/rwcarlsen/cas/auth"
   "github.com/rwcarlsen/cas/util"
-  "github.com/rwcarlsen/cas/timeindex"
-  "github.com/rwcarlsen/cas/objindex"
+  "github.com/rwcarlsen/cas/blobserv/timeindex"
+  "github.com/rwcarlsen/cas/blobserv/objindex"
 )
 
 const (
