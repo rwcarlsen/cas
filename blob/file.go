@@ -49,6 +49,7 @@ func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
 
   // fill in meta fields
   abs, _ := filepath.Abs(path)
+  abs = filepath.Dir(abs)
   stat, err := f.Stat()
   if err != nil {
     return nil, err

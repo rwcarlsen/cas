@@ -99,8 +99,10 @@ func testDir() {
 
   metablobs := make([]*blob.Blob, 0)
   for _, meta := range metas {
+    obj := blob.NewObject()
+    meta.RcasObjectRef = obj.Ref()
     m, _ := blob.Marshal(meta)
-    metablobs = append(metablobs, m)
+    metablobs = append(metablobs, m, obj)
   }
 
   err = db.Put(metablobs...)

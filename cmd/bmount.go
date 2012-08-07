@@ -6,6 +6,7 @@ import (
   "fmt"
   "io/ioutil"
   "flag"
+  "strings"
   "time"
   "encoding/json"
   "path/filepath"
@@ -20,6 +21,12 @@ var tags = flag.Args()
 
 var cl = &blobserv.Client{}
 func main() {
+  flag.Parse()
+  if strings.HasPrefix(*root, "./") {
+    abs, _ := filepath.Abs("./")
+    *root = filepath.Join(abs, *root)
+  }
+
   home := os.Getenv("HOME")
   confPath := filepath.Join(home, ".blobhostrc")
 
@@ -51,15 +58,19 @@ func main() {
   for _, b := range q.Results {
     fm := &blob.FileMeta{}
     err = blob.Unmarshal(b, fm)
-    fmt.Println("creating file from: ", fm)
-    if err != nil || !isTip(b, fm) {
-      fmt.Println("is not the tip")
+    if err != nil || !isTip(b) {
       continue
     }
 
     fm, data, err := cl.ReconstituteFile(b.Ref())
+    if err != nil {
+      fmt.Println(err)
+      continue
+    }
 
     os.MkdirAll(filepath.Join(*root, fm.Path), 0744)
+    fmt.Println("root=", *root, ", path=", fm.Path, ", name=", fm.Name)
+    fmt.Println("creating file: ", filepath.Join(*root, fm.Path, fm.Name))
     f, err := os.Create(filepath.Join(*root, fm.Path, fm.Name))
     if err != nil {
       fmt.Println(err)
@@ -83,8 +94,9 @@ func main() {
   f.Close()
 }
 
-func isTip(b *blob.Blob, fm *blob.FileMeta) bool {
-  tip, err := cl.ObjectTip(fm.RcasObjectRef)
+func isTip(b *blob.Blob) bool {
+  objref := b.ObjectRef()
+  tip, err := cl.ObjectTip(objref)
   if err != nil {
     return false
   }
@@ -99,10 +111,11 @@ func getAndFilter(q *query.Query) {
   for skip := 0; !done; skip += batchN {
     blobs, err := cl.BlobsBackward(time.Now(), batchN, skip)
     if len(blobs) > 0 {
+      fmt.Println("len=", len(blobs))
+      fmt.Println("blobs:", blobs)
       q.Process(blobs...)
     }
 
-    fmt.Println("nblobsgotten=", len(blobs))
     if err != nil {
       break
     }

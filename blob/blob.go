@@ -134,7 +134,7 @@ func (b *Blob) get(prop string) interface{} {
     return nil
   }
 
-  val, ok := m[Timestamp]
+  val, ok := m[prop]
   if !ok {
     return nil
   }

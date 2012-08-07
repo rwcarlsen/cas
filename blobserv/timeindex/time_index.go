@@ -2,6 +2,7 @@
 package timeindex
 
 import (
+  "fmt"
   "io/ioutil"
   "encoding/json"
   "errors"
@@ -52,7 +53,9 @@ func (ti *TimeIndex) Notify(blobs ...*blob.Blob) {
   defer ti.lock.Unlock()
 
   for _, b := range blobs {
-    if b.Type() == blob.NoType {
+    tp := b.Type()
+    fmt.Println("notified blobtype=", tp)
+    if tp == blob.NoType || tp == blob.Object {
       continue
     }
 

@@ -9,7 +9,7 @@ const (
 )
 
 type objectMeta struct {
-  Type string
+  RcasType string
   RcasRandom []byte
 }
 
@@ -23,7 +23,7 @@ func NewObject() *Blob {
   }
 
   o := &objectMeta{}
-  o.Type = Object
+  o.RcasType = Object
   o.RcasRandom = r
 
   b, err := Marshal(o)
