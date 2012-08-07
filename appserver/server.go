@@ -17,7 +17,7 @@ import (
 )
 
 const tmplDir = "templates"
-var defaultClient *blobserv.Client = &blobserv.Client{"http://rwc-server.dyndns.org:7777", "robert", "password"}
+var defaultClient *blobserv.Client = &blobserv.Client{"http://0.0.0.0:7777", "robert", "password"}
 
 type HandleFunc func(*blobserv.Client, http.ResponseWriter, *http.Request)
 
