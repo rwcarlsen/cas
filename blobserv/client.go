@@ -35,6 +35,17 @@ func (c *Client) GetBlob(ref string) (*blob.Blob, error) {
   return blob.NewRaw(data), nil
 }
 
+func (c *Client) Dial() error {
+  r, err := http.NewRequest("GET", c.Host, nil)
+  if err != nil {
+    return err
+  }
+  r.URL.Path = "/ref/foo"
+  client := &http.Client{}
+  _, err = client.Do(r)
+  return err
+}
+
 func (c *Client) GetBlobContent(ref string) ([]byte, error) {
   r, err := http.NewRequest("GET", c.Host, nil)
   if err != nil {
