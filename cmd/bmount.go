@@ -42,7 +42,7 @@ func main() {
 }
 
 func mountPath(fm *blob.FileMeta) string {
-  return filepath.Join(fm.Path, fm.Name)
+  return filepath.Join(fm.Path, fm.Name)[len(*blobPath):]
 }
 
 func filtFn(prefix string) func(*blob.Blob)bool {
@@ -52,6 +52,6 @@ func filtFn(prefix string) func(*blob.Blob)bool {
     if err != nil {
       return false
     }
-    return strings.HasPrefix(f.Path, prefix)
+    return strings.HasPrefix(f.Path, filepath.Clean(prefix))
   }
 }
