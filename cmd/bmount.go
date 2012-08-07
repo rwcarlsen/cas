@@ -29,7 +29,7 @@ func main() {
   m.Root, _ = filepath.Abs(*root)
   m.BlobPath = *blobPath
 
-  err := m.Execute()
+  err := m.Unpack()
   if err != nil {
     fmt.Println(err)
     return

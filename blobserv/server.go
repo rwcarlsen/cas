@@ -159,7 +159,7 @@ func (h *putHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
   defer func() {
     if r := recover(); r != nil {
       w.Header().Set(ActionStatus, ActionFailed)
-      fmt.Println("blob post failed: ", r)
+      fmt.Println("blob post issues: ", r)
     }
   }()
 
@@ -168,7 +168,10 @@ func (h *putHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
   b := blob.NewRaw(body)
   err = h.bs.Db.Put(b)
-  util.Check(err)
+  if err == blobdb.HashCollideErr {
+    w.Header().Set(ActionStatus, ActionFailed)
+    return
+  }
   h.bs.notify(b)
 
   w.Header().Set(ActionStatus, ActionSuccess)
