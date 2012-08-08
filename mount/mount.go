@@ -2,7 +2,6 @@
 package mount
 
 import (
-  "fmt"
   "os"
   "io/ioutil"
   "time"
@@ -71,71 +70,53 @@ func (m *Mount) Unpack() error {
   return nil
 }
 
-func (m *Mount) Snapshot() error {
-  var bigerr error
-  fn := func(path string, info os.FileInfo, inerr error) error {
-    if info.IsDir() {
-      return nil
-    }
-
-    if path[0] != '/' {
-      path = "/" + path
-    }
-
-    fmt.Println("path=", path)
-    var newfm = &blob.FileMeta{}
-    var chunks []*blob.Blob
-    if ref, ok := m.Refs[path]; ok {
-      fmt.Println("preexisting")
-      b, err := m.Cl.ObjectTip(ref)
-      if err != nil {
-        bigerr = err
-        return nil
-      }
-      err = blob.Unmarshal(b, newfm)
-      if err != nil {
-        bigerr = err
-        return nil
-      }
-      orig := newfm.Path
-      chunks, err = newfm.LoadFromPath(path[1:])
-      newfm.Path = orig
-      if err != nil {
-        bigerr = err
-        return nil
-      }
-    } else {
-      var err error
-      fmt.Println("new file")
-      obj := blob.NewObject()
-      newfm.RcasObjectRef = obj.Ref()
-      chunks, err = newfm.LoadFromPath(path[1:])
-      if err != nil {
-        bigerr = err
-        return nil
-      }
-      chunks = append(chunks, obj)
-    }
-
-    b, err := blob.Marshal(newfm)
-    if err != nil {
-      bigerr = err
-      return nil
-    }
-    chunks = append(chunks, b)
-    fmt.Println("putting blobs...", len(chunks))
-
-    for _, b := range chunks {
-      err := m.Cl.PutBlob(b)
-      if err != nil {
-        bigerr = err
-      }
-    }
-    return nil
+func (m *Mount) Snap(path string) error {
+  if !filepath.IsAbs(path) {
+    path = "/" + path
   }
 
-  filepath.Walk("./", fn)
-  return bigerr
+  var newfm = &blob.FileMeta{}
+  var chunks []*blob.Blob
+  if ref, ok := m.Refs[path]; ok {
+    b, err := m.Cl.ObjectTip(ref)
+    if err != nil {
+      return err
+    }
+    err = blob.Unmarshal(b, newfm)
+    if err != nil {
+      return err
+    }
+    orig := newfm.Path
+    chunks, err = newfm.LoadFromPath(path[1:])
+    newfm.Path = orig
+    if err != nil {
+      return err
+    }
+  } else {
+    var err error
+    obj := blob.NewObject()
+    newfm.RcasObjectRef = obj.Ref()
+    chunks, err = newfm.LoadFromPath(path[1:])
+    newfm.Path = filepath.Join(m.Root, newfm.Path)
+    if err != nil {
+      return err
+    }
+    chunks = append(chunks, obj)
+  }
+
+  b, err := blob.Marshal(newfm)
+  if err != nil {
+    return err
+  }
+  chunks = append(chunks, b)
+
+  for _, b := range chunks {
+    err := m.Cl.PutBlob(b)
+    if err != nil {
+      return err
+    }
+  }
+  return nil
 }
 
 func (m *Mount) runQuery() {
