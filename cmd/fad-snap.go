@@ -26,6 +26,7 @@ func main() {
     if err != nil {
       fmt.Println(err)
     }
+    fmt.Println("snapped '" + path + "'")
     return nil
   }
 

@@ -2,7 +2,6 @@
 package blob
 
 import (
-  "fmt"
   "strings"
   "crypto"
   "crypto/sha256"
@@ -79,9 +78,7 @@ func addField(field, val string, data []byte) []byte {
     panic("blob: json blob marshaling is broken")
   }
   trimmed = trimmed[:len(trimmed) - 1]
-  fmt.Println(trimmed)
   trimmed = strings.TrimSpace(trimmed)
-  fmt.Println(trimmed)
   trimmed += ",\n\t\"" + field + "\":\"" + val + "\"\n}\n"
   return []byte(trimmed)
 }

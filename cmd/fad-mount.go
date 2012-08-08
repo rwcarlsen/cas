@@ -52,6 +52,6 @@ func filtFn(prefix string) func(*blob.Blob)bool {
     if err != nil {
       return false
     }
-    return strings.HasPrefix(f.Path, filepath.Clean(prefix))
+    return strings.HasPrefix(f.Path, strings.Trim(prefix, "./\\"))
   }
 }

@@ -2,7 +2,7 @@
 package blobdb
 
 import (
-  "github.com/rwcarlsen/cas/blob"
+  "fmt"
   "path"
   "io/ioutil"
   "errors"
@@ -11,6 +11,7 @@ import (
   "encoding/hex"
   "crypto"
   "path/filepath"
+  "github.com/rwcarlsen/cas/blob"
 )
 
 var (
@@ -42,7 +43,7 @@ func blobRefParts(ref string) (hash crypto.Hash, sum string) {
 func (db *Dbase) Get(ref string) (b *blob.Blob, err error) {
   defer func() {
     if r := recover(); r != nil {
-      err = r.(error)
+      err = errors.New(fmt.Sprint(r))
     }
   }()
 
