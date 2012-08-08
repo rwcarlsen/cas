@@ -47,6 +47,8 @@ func (c *Client) Dial() error {
 }
 
 func getClient() *http.Client {
+  // allows me to use encryption certificate that is not signed by a
+  // verified authority
   config := &tls.Config{InsecureSkipVerify: true}
   return &http.Client{
     Transport: &http.Transport{TLSClientConfig: config, Proxy: http.ProxyFromEnvironment},
