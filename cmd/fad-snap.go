@@ -3,8 +3,10 @@ package main
 
 import (
   "fmt"
-  "github.com/rwcarlsen/cas/mount"
+  "os"
+  "path/filepath"
   "strings"
+  "github.com/rwcarlsen/cas/mount"
 )
 
 func main() {
@@ -24,6 +26,7 @@ func main() {
     if err != nil {
       fmt.Println(err)
     }
+    return nil
   }
 
   filepath.Walk("./", fn)

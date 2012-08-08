@@ -14,10 +14,10 @@ import (
 
 type Mount struct {
   Cl *blobserv.Client
-  Root string
-  BlobPath string
+  Root string // Mounted blobs are placed in this directory.
+  BlobPath string // All blobs under this meta-path will be mounted.
   Refs map[string]string
-  UseHistory bool
+  UseHistory bool // false to mount only the most recent version of each blob.
   PathFor func(*blob.FileMeta)string `json:"-"`
   q *query.Query
 }
@@ -97,7 +97,8 @@ func (m *Mount) Snap(path string) error {
     obj := blob.NewObject()
     newfm.RcasObjectRef = obj.Ref()
     chunks, err = newfm.LoadFromPath(path[1:])
-    newfm.Path = filepath.Join(m.Root, newfm.Path)
+    rel, _ := filepath.Rel(m.Root, newfm.Path)
+    newfm.Path = filepath.Join(m.BlobPath, rel)
     if err != nil {
       return err
     }
