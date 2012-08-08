@@ -192,6 +192,6 @@ func testTimeIndex() {
 
 func testBlobServer() {
   fmt.Println("running blob server...")
-  log.Fatal(blobserv.ListenAndServe(blobserv.DefaultAddr, dbpath))
+  log.Fatal(blobserv.ListenAndServeTLS(blobserv.DefaultAddr, dbpath, "cert.pem", "key.pem"))
 }
 

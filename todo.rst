@@ -1,8 +1,6 @@
 
 * Security/authentication
 
-  - use https (TLS) instead of http on the blobserver
-
   - way to manage multiple logins (maybe through share blobs)
 
   - allow rsa (and others?) public key authentication for blobserver
@@ -48,4 +46,9 @@
   - creating share blobs corresponding to mounted files::
 
       fad-share ??????
+
+* preliminarily done:
+
+  - use https (TLS) instead of http on the blobserver
+
 

@@ -9,6 +9,7 @@ import (
   "encoding/json"
   "io/ioutil"
   "net/http"
+  "crypto/tls"
   "errors"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobserv/timeindex"
@@ -41,9 +42,15 @@ func (c *Client) Dial() error {
     return err
   }
   r.URL.Path = "/ref/foo"
-  client := &http.Client{}
-  _, err = client.Do(r)
+  _, err = getClient().Do(r)
   return err
+}
+
+func getClient() *http.Client {
+  config := &tls.Config{InsecureSkipVerify: true}
+  return &http.Client{
+    Transport: &http.Transport{TLSClientConfig: config, Proxy: http.ProxyFromEnvironment},
+  }
 }
 
 func (c *Client) GetBlobContent(ref string) ([]byte, error) {
@@ -55,8 +62,7 @@ func (c *Client) GetBlobContent(ref string) ([]byte, error) {
   r.URL.Path = "/ref/" + ref
   c.setAuth(r)
 
-  client := &http.Client{}
-  resp, err := client.Do(r)
+  resp, err := getClient().Do(r)
   if err != nil {
     return nil, err
   }
@@ -107,8 +113,7 @@ func (c *Client) PutBlob(b *blob.Blob) error {
 
   r.URL.Path = "/put/"
   c.setAuth(r)
-  client := &http.Client{}
-  resp, err := client.Do(r)
+  resp, err := getClient().Do(r)
   if err != nil {
     return err
   }
@@ -137,8 +142,7 @@ func (c *Client) IndexBlobs(name string, nBlobs int, params interface{}) ([]*blo
   r.Header.Set(ResultCountField, strconv.Itoa(nBlobs))
   c.setAuth(r)
 
-  client := &http.Client{}
-  resp, err := client.Do(r)
+  resp, err := getClient().Do(r)
   if err != nil {
     return nil, err
   }

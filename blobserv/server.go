@@ -48,6 +48,16 @@ var (
 )
 
 func ListenAndServe(addr string, dbPath string) error {
+  bs := configServ(addr, dbPath)
+  return bs.ListenAndServe()
+}
+
+func ListenAndServeTLS(addr, dbPath string, certFile, keyFile string) error {
+  bs := configServ(addr, dbPath)
+  return bs.ListenAndServeTLS(certFile, keyFile)
+}
+
+func configServ(addr, dbPath string) *Server {
   db, _ := blobdb.New(dbPath)
   tInd := timeindex.New()
   oInd := objindex.New()
@@ -60,10 +70,10 @@ func ListenAndServe(addr string, dbPath string) error {
 
   serv := defaultHttpServer()
   serv.Addr = addr
-  bs := Server{Db: db, Serv: serv}
+  bs := &Server{Db: db, Serv: serv}
   bs.AddIndex("time", tInd)
   bs.AddIndex("object", oInd)
-  return bs.ListenAndServe()
+  return bs
 }
 
 type Server struct {
@@ -100,7 +110,7 @@ func (bs *Server) notify(blobs ...*blob.Blob) {
   }
 }
 
-func (bs *Server) ListenAndServe() error {
+func (bs *Server) prepareListen() {
   if bs.inds == nil {
     bs.inds = make(map[string]index.Index, 0)
   }
@@ -118,14 +128,21 @@ func (bs *Server) ListenAndServe() error {
   http.Handle("/put/", auth.Handler{&putHandler{bs: bs}})
   http.Handle("/index/", auth.Handler{&indexHandler{bs: bs}})
   http.Handle("/share/", &shareHandler{bs: bs})
+}
 
+func (bs *Server) ListenAndServe() error {
+  bs.prepareListen()
   return bs.Serv.ListenAndServe()
+}
+
+func (bs *Server) ListenAndServeTLS(certFile, keyFile string) error {
+  bs.prepareListen()
+  return bs.Serv.ListenAndServeTLS(certFile, keyFile)
 }
 
 type defHandler struct {}
 
 func (h *defHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-  fmt.Println(req)
   w.Write([]byte("Page doesn't exist"))
 }
 
