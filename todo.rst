@@ -1,4 +1,18 @@
 
+* things affecting blob schemas
+
+  - move blob.FileMeta Hidden field to be inside the filemeta Notes
+
+  - consider moving FileMeta.Path into the Notes field somehow
+
+  - What if somebody wants an app that deals with metablobs that don't point to
+    any files? I want them to still use the standard FileMeta concept where
+    many apps can each pile their own meta-data into a single file (the Notes
+    field).
+
+      * maybe I could put the ContentRefs inside the Notes field? - interesting
+        idea eh?
+
 * Security/authentication
 
   - way to manage multiple logins (maybe through share blobs)
@@ -21,10 +35,6 @@
 
   - a share blob will help the blobserver know if the requested get/put
     blob operation is allowed
-
-* things affecting blob schemas
-
-  - move blob.FileMeta Hidden field to be inside the filemeta Notes
 
 * make cli tools
 
