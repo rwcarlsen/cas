@@ -73,33 +73,33 @@ In Progress
 
 * cli tools
 
-    - A generic fad-find tool that returns a list of blobrefs from a blobserver
+  - A generic fad-find tool that returns a list of blobrefs from a blobserver
 
-       * based on path, tags, or other arbitrary meta-data
+    * based on path, tags, or other arbitrary meta-data
 
-    - A tool fad-mod that modifies arbitrary Notes meta-data of piped in object refs
+  - A tool fad-mod that modifies arbitrary Notes meta-data of piped in object refs
 
-    - Modify fad-mount to take list of blobrefs (not object refs) to mount piped in
+  - Modify fad-mount to take list of blobrefs (not object refs) to mount piped in
 
 preliminarily done
 ------------------
 
-  - use https (TLS) instead of http on the blobserver
+- use https (TLS) instead of http on the blobserver
 
 decided against
 ---------------
 
-  - What if somebody wants an app that deals with metablobs that don't point to
-    any files? I want them to still use the standard FileMeta concept where
-    many apps can each pile their own meta-data into a single file (the Notes
-    field).
+- What if somebody wants an app that deals with metablobs that don't point to
+  any files? I want them to still use the standard FileMeta concept where
+  many apps can each pile their own meta-data into a single file (the Notes
+  field).
 
-      * maybe I could put the ContentRefs inside the Notes field? - interesting
-        idea eh? - S
+  * maybe I could put the ContentRefs inside the Notes field? - interesting
+    idea eh? - S
 
-      * why I don't like it:
+  * why I don't like it:
 
-          Actually - I would like the meta-blobs to really stay meta-blobs.
-          If somebody has real, hardy, application data, it should go in
-          separate blobs referenced in ContentRefs.
+    Actually - I would like the meta-blobs to really stay meta-blobs.
+    If somebody has real, hardy, application data, it should go in
+    separate blobs referenced in ContentRefs.
 

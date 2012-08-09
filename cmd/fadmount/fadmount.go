@@ -17,7 +17,7 @@ var blobPath = flag.String("path", "", "blobs under path are mounted into root d
 func main() {
   flag.Parse()
   url := flag.Arg(0)
-  
+
   refs := []string{}
   if len(flag.Args()) > 1 {
     refs = flag.Args()[1:]
