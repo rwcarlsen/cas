@@ -1,10 +1,11 @@
 
-Todo
-----
+Cas status and todo
+===================
+
+New
+---
 
 * things affecting blob schemas
-
-  - move blob.FileMeta Hidden field to be inside the filemeta Notes
 
   - consider moving FileMeta.Path into the Notes field somehow
 
@@ -33,7 +34,7 @@ Todo
   - a share blob will help the blobserver know if the requested get/put
     blob operation is allowed
 
-* make cli tools
+* cli tools
 
   - rework mount/modify/rm toolchain to be as follows:
 
@@ -41,13 +42,7 @@ Todo
 
     - fad-snap should work as it currently does
 
-    - A generic fad-find tool that returns a list of blobrefs from a blobserver
-
-       * based on path, tags, or other arbitrary meta-data
-
     - A tool fad-mod that modifies arbitrary Notes meta-data of piped in object refs
-
-    - Modify fad-mount to take list of blobrefs (not object refs) to mount piped in
 
     - A tool (fad-stat) to stat mounted files (e.g. return their timestamp, objectref,
       etc.)
@@ -56,8 +51,7 @@ Todo
 
         // mount blobs that have a certain path into direcory mymount with
         // /home/robert prefix removed
-        fad-find -path=/home/robert | fad-mount -root=mymount -prefix=/home/robert
-
+        fad-find -path=/home/robert | fad-mount -root=mymount -prefix=/home/robert 
         // modify meta-data on a file: mark 'hidden' field as true and add
         // 'failure' to a list of tags
         fad-stat mymount/foo.txt | fad-mod hidden=true tag+=failure
@@ -69,6 +63,28 @@ Todo
   - creating share blobs corresponding to mounted files::
 
       fad-share ??????
+
+In Progress
+-----------
+
+* things affecting blob schemas
+
+  - move blob.FileMeta Hidden field to be inside the filemeta Notes
+
+* cli tools
+
+    - A generic fad-find tool that returns a list of blobrefs from a blobserver
+
+       * based on path, tags, or other arbitrary meta-data
+
+    - A tool fad-mod that modifies arbitrary Notes meta-data of piped in object refs
+
+    - Modify fad-mount to take list of blobrefs (not object refs) to mount piped in
+
+preliminarily done
+------------------
+
+  - use https (TLS) instead of http on the blobserver
 
 decided against
 ---------------
@@ -86,10 +102,4 @@ decided against
           Actually - I would like the meta-blobs to really stay meta-blobs.
           If somebody has real, hardy, application data, it should go in
           separate blobs referenced in ContentRefs.
-
-preliminarily done
-------------------
-
-  - use https (TLS) instead of http on the blobserver
-
 
