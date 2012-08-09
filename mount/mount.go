@@ -5,13 +5,11 @@ import (
   "os"
   "io/ioutil"
   "errors"
-  "time"
   "strings"
   "encoding/json"
   "path/filepath"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobserv"
-  "github.com/rwcarlsen/cas/query"
 )
 
 var UntrackedErr = errors.New("mount: Illegal operation on untracked file")
@@ -21,15 +19,12 @@ type Mount struct {
   Root string // Mounted blobs are placed in this directory.
   BlobPath string // All blobs under this meta-path will be mounted.
   Refs map[string]string
-  UseHistory bool // false to mount only the most recent version of each blob.
   PathFor func(*blob.FileMeta)string `json:"-"`
-  q *query.Query
 }
 
-func New(pathFn func(*blob.FileMeta)string, q *query.Query) *Mount {
+func New(pathFn func(*blob.FileMeta)string) *Mount {
   return &Mount{
     PathFor: pathFn,
-    q: q,
   }
 }
 
@@ -41,28 +36,25 @@ func (m *Mount) ConfigClient(user, pass, host string) {
   }
 }
 
-func (m *Mount) Unpack() error {
+func (m *Mount) Unpack(refs ...string) error {
   err := m.Client.Dial()
   if err != nil {
     return err
   }
-  m.runQuery()
 
   m.Refs = map[string]string{}
-  for _, b := range m.q.Results {
-    fm := &blob.FileMeta{}
-    err := blob.Unmarshal(b, fm)
-    if err != nil || (!m.UseHistory && !m.isTip(b)) {
-      continue
-    }
-
-    fm, data, err := m.Client.ReconstituteFile(b.Ref())
+  for _, ref := range refs {
+    b, err := m.Client.GetBlob(ref)
     if err != nil {
       return err
     }
 
-    if fm.Hidden {
-      continue
+    fm := &blob.FileMeta{}
+    err = blob.Unmarshal(b, fm)
+
+    fm, data, err := m.Client.ReconstituteFile(b.Ref())
+    if err != nil {
+      return err
     }
 
     pth := filepath.Join(m.Root, m.PathFor(fm))
@@ -76,26 +68,6 @@ func (m *Mount) Unpack() error {
     pth = m.PathFor(fm)
     pth = strings.Trim(pth, "./\\")
     m.Refs[pth] = fm.RcasObjectRef
-  }
-  return nil
-}
-
-func (m *Mount) Hide(path string) error {
-  fm, err := m.GetTip(path)
-  if err != nil {
-    return errors.New("mount: Failed to retrieve file meta blob for '" + path + "'")
-  }
-
-  fm.Hidden = true
-
-  b, err := blob.Marshal(fm)
-  if err != nil {
-    return errors.New("mount: Failed to marshal file meta blob")
-  }
-
-  err = m.Client.PutBlob(b)
-  if err != nil {
-    return errors.New("mount: Could not send blob to blobserver")
   }
   return nil
 }
@@ -161,29 +133,6 @@ func (m *Mount) Snap(path string) error {
   return nil
 }
 
-func (m *Mount) runQuery() {
-  m.q.Open()
-  defer m.q.Close()
-
-  batchN := 1000
-  timeout := time.After(10 * time.Second)
-  for skip, done := 0, false; !done; skip += batchN {
-    blobs, err := m.Client.BlobsBackward(time.Now(), batchN, skip)
-    if len(blobs) > 0 {
-      m.q.Process(blobs...)
-    }
-
-    if err != nil {
-      break
-    }
-    select {
-      case <-timeout:
-        done = true
-      default:
-    }
-  }
-}
-
 func (m *Mount) Save(pth string) error {
   data, err := json.Marshal(m)
   if err != nil {
@@ -212,14 +161,5 @@ func (m *Mount) Load(pth string) error {
     return err
   }
   return nil
-}
-
-func (m *Mount) isTip(b *blob.Blob) bool {
-  objref := b.ObjectRef()
-  tip, err := m.Client.ObjectTip(objref)
-  if err != nil {
-    return false
-  }
-  return b.Ref() == tip.Ref()
 }
 

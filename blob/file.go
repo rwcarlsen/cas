@@ -16,7 +16,6 @@ const (
 type FileMeta struct {
   RcasType string
   RcasObjectRef string
-  Hidden bool // true if a file has been "deleted"
   Name string
   Path string
   Notes map[string][]byte

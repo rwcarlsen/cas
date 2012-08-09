@@ -3,7 +3,10 @@ package util
 
 import (
   "os"
+  "io/ioutil"
+  "bytes"
   "net/http"
+  "strings"
   "fmt"
   "path"
   "io"
@@ -49,5 +52,22 @@ func LoadStatic(pth string, w http.ResponseWriter) error {
 
   _, err = io.Copy(w, f)
   return err
+}
+
+func PipedStdin() []string {
+  data, _ := ioutil.ReadAll(os.Stdin)
+
+  var line string
+  var err error
+  refs := []string{}
+  buff := bytes.NewBuffer(data)
+  for err == nil {
+    line, err = buff.ReadString('\n')
+    line = strings.TrimSpace(line)
+    if len(line) > 0 {
+      refs = append(refs, line)
+    }
+  }
+  return refs
 }
 

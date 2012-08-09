@@ -3,10 +3,11 @@ package main
 
 import (
   "fmt"
+  "bytes"
+  "io/ioutil"
   "time"
   "os"
   "log"
-  //"path/filepath"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobdb"
   "github.com/rwcarlsen/cas/blobserv"
@@ -17,13 +18,25 @@ import (
 var (
   home string = os.Getenv("HOME")
   dbpath = "./testdb" //blobserv.DefaultDb
-
   testdirpath = "./foodir"
   testfilepath = "./foodir/foo.txt"
 )
 
-
 func main() {
+  data, err := ioutil.ReadAll(os.Stdin)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  var line string
+  buff := bytes.NewBuffer(data)
+  for err == nil {
+    line, err = buff.ReadString('\n')
+    fmt.Print(line)
+  }
+  return
+
   //testRaw()
   //testFile()
   testDir()
