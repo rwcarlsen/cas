@@ -22,6 +22,10 @@
   - a share blob will help the blobserver know if the requested get/put
     blob operation is allowed
 
+* things affecting blob schemas
+
+  - move blob.FileMeta Hidden field to be inside the filemeta Notes
+
 * make cli tools
 
   - tagging mounted files with arbitrary meta-data - e.g.::

@@ -3,6 +3,8 @@ package blob
 
 import (
   "os"
+  "errors"
+  "encoding/json"
   "path/filepath"
   "io/ioutil"
 )
@@ -17,7 +19,7 @@ type FileMeta struct {
   Hidden bool // true if a file has been "deleted"
   Name string
   Path string
-  Notes map[string]string
+  Notes map[string][]byte
   Size int64
   ContentRefs []string
 }
@@ -68,8 +70,28 @@ func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
 //
 // This should be used by apps to make valueable meta-data accessible to any app
 // that tries to use/find the file.
-func (m *FileMeta) AddNotes(id, data string) {
+func (m *FileMeta) AddNotes(id string, v interface{}) error {
+  data, err := json.Marshal(v)
+  if err != nil {
+    return errors.New("blob: failed to marshal notes into json")
+  }
   m.Notes[id] = data
+  return nil
+}
+
+// AddNotes allows arbitrary meta-data to be attached to any file.
+//
+// This should be used by apps to make valueable meta-data accessible to any app
+// that tries to use/find the file.
+func (m *FileMeta) GetNotes(id string, v interface{}) error {
+  if data, ok := m.Notes[id]; ok {
+    err := json.Unmarshal(data, v)
+    if err != nil {
+      return errors.New("blob: failed to unmarshal json notes")
+    }
+    return nil
+  }
+  return errors.New("blob: invalid notes id")
 }
 
 // SplitFile creates blobs by splitting data into blockSize (bytes) chunks
