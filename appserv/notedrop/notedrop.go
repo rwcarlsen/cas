@@ -9,21 +9,22 @@ import (
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/blobserv"
+  "github.com/rwcarlsen/cas/appserv"
 )
 
 const myType = "note-drop"
 
-func Handle(c *blobserv.Client, w http.ResponseWriter, r *http.Request) {
+func Handler(c *blobserv.Client, w http.ResponseWriter, r *http.Request) {
   defer util.DeferWrite(w)
 
   pth := strings.Trim(r.URL.Path, "/")
   if pth == "notedrop" {
-    err := util.LoadStatic("notedrop/index.html", w)
+    err := util.LoadStatic(appserv.Static("notedrop/index.html"), w)
     util.Check(err)
   } else if pth == "notedrop/putnote" {
     putnote(c, w, r)
   } else {
-    err := util.LoadStatic(pth, w)
+    err := util.LoadStatic(appserv.Static(pth), w)
     util.Check(err)
   }
 }

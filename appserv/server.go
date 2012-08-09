@@ -1,41 +1,62 @@
 
-package main
+package appserv
 
 import (
   "fmt"
+  "path/filepath"
   "net/http"
   "strings"
+  "errors"
   "sort"
   "html/template"
   "io/ioutil"
   "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/blobserv"
-  "github.com/rwcarlsen/cas/appserver/notedrop"
-  "github.com/rwcarlsen/cas/appserver/fupload"
-  "github.com/rwcarlsen/cas/appserver/recent"
-  "github.com/rwcarlsen/cas/appserver/pics"
 )
 
 const tmplDir = "templates"
 var defaultClient *blobserv.Client = &blobserv.Client{"https://0.0.0.0:7777", "robert", "password"}
 
 type HandleFunc func(*blobserv.Client, http.ResponseWriter, *http.Request)
-
-//// add new apps by listing them here in this init func
-func init() {
-  handlers = map[string]HandleFunc{}
-  handlers["notedrop"] = notedrop.Handle
-  handlers["fupload"] = fupload.Handle
-  handlers["recent"] = recent.Handle
-  handlers["pics"] = pics.Handle
-}
-
-var handlers map[string]HandleFunc
+var handlers = make(map[string]HandleFunc)
 var tmpl *template.Template
 var applist []string
-func init() {
-  tmpl = template.Must(template.ParseFiles("index.tmpl"))
-  _ = template.Must(tmpl.ParseGlob(tmplDir + "/*.tmpl"))
+var header []byte
+var footer []byte
+var static string
+
+func Static(path string) string {
+  return filepath.Join(static, path)
+}
+
+func SetStatic(path string) {
+  static = path
+}
+
+func RegisterApp(name string, h HandleFunc) error {
+  if _, ok := handlers[name]; ok {
+    return errors.New("Registration failed: duplicate app name.")
+  }
+  handlers[name] = h
+  return nil
+}
+
+func ListenAndServe() error {
+  servInit()
+  http.HandleFunc("/", handler)
+
+  fmt.Println("Starting http server...")
+  err := http.ListenAndServe("0.0.0.0:8888", nil)
+
+  if err != nil {
+    return err
+  }
+  return nil
+}
+
+func servInit() {
+  tmpl = template.Must(template.ParseFiles(Static("index.tmpl")))
+  _ = template.Must(tmpl.ParseGlob(Static(tmplDir + "/*.tmpl")))
 
   applist = make([]string, 0)
   for name, _ := range handlers {
@@ -43,27 +64,12 @@ func init() {
   }
 
   sort.Strings(applist)
-}
-var header []byte
-var footer []byte
-func init() {
+
   var err error
-  header, err = ioutil.ReadFile("header.html")
+  header, err = ioutil.ReadFile(Static("header.html"))
   util.Check(err)
-  footer, err = ioutil.ReadFile("footer.html")
+  footer, err = ioutil.ReadFile(Static("footer.html"))
   util.Check(err)
-}
-
-func main() {
-  http.HandleFunc("/", handler)
-
-  fmt.Println("Starting http server...")
-  err := http.ListenAndServe("0.0.0.0:8888", nil)
-
-  if err != nil {
-    fmt.Println(err)
-    return
-  }
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +92,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
       w.Write(footer)
     }
   } else {
-    err := util.LoadStatic(pth, w)
+    err := util.LoadStatic(Static(pth), w)
     util.Check(err)
   }
 }

@@ -11,19 +11,17 @@ import (
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/blobserv"
-  "github.com/rwcarlsen/cas/appserver/pics/photos"
+  "github.com/rwcarlsen/cas/appserv/pics/photos"
+  "github.com/rwcarlsen/cas/appserv"
 )
-
-var tmpl *template.Template
-func init() {
-  tmpl = template.Must(template.ParseFiles("pics/index.tmpl"))
-}
 
 var picIndex *photos.Index
 var c *blobserv.Client
-func Handle(nc *blobserv.Client, w http.ResponseWriter, r *http.Request) {
+func Handler(nc *blobserv.Client, w http.ResponseWriter, r *http.Request) {
   defer util.DeferWrite(w)
   c = nc
+
+  tmpl := template.Must(template.ParseFiles(appserv.Static("pics/index.tmpl")))
 
   if picIndex == nil {
     loadPicIndex()
@@ -49,7 +47,7 @@ func Handle(nc *blobserv.Client, w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", mime.TypeByExtension(ext))
     w.Write(data)
   } else {
-    err := util.LoadStatic(pth, w)
+    err := util.LoadStatic(appserv.Static(pth), w)
     util.Check(err)
   }
 }

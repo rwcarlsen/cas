@@ -10,15 +10,13 @@ import (
   "html/template"
   "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/blobserv"
+  "github.com/rwcarlsen/cas/appserv"
 )
 
-var tmpl *template.Template
-func init() {
-  tmpl = template.Must(template.ParseFiles("recent/index.tmpl"))
-}
-
-func Handle(c *blobserv.Client, w http.ResponseWriter, r *http.Request) {
+func Handler(c *blobserv.Client, w http.ResponseWriter, r *http.Request) {
   defer util.DeferWrite(w)
+
+  tmpl := template.Must(template.ParseFiles(appserv.Static("recent/index.tmpl")))
 
   pth := strings.Trim(r.URL.Path, "/")
   if pth == "recent" {
@@ -26,7 +24,7 @@ func Handle(c *blobserv.Client, w http.ResponseWriter, r *http.Request) {
     err := tmpl.Execute(w, data)
     util.Check(err)
   } else {
-    err := util.LoadStatic(pth, w)
+    err := util.LoadStatic(appserv.Static(pth), w)
     util.Check(err)
   }
 }

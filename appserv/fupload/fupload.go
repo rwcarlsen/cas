@@ -10,19 +10,20 @@ import (
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/util"
   "github.com/rwcarlsen/cas/blobserv"
+  "github.com/rwcarlsen/cas/appserv"
 )
 
-func Handle(c *blobserv.Client, w http.ResponseWriter, r *http.Request) {
+func Handler(c *blobserv.Client, w http.ResponseWriter, r *http.Request) {
   defer util.DeferWrite(w)
 
   pth := strings.Trim(r.URL.Path, "/")
   if pth == "fupload" {
-    err := util.LoadStatic("fupload/index.html", w)
+    err := util.LoadStatic(appserv.Static("fupload/index.html"), w)
     util.Check(err)
   } else if pth == "fupload/putfiles" {
     putfiles(c, w, r)
   } else {
-    err := util.LoadStatic(pth, w)
+    err := util.LoadStatic(appserv.Static(pth), w)
     util.Check(err)
   }
 }
