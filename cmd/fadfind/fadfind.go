@@ -33,8 +33,9 @@ func main() {
     return
   }
 
-  refs := getMatches()
+  fmt.Println(url)
 
+  refs := getMatches()
   for _, ref := range refs {
     fmt.Println(ref)
   }

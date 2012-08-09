@@ -22,7 +22,12 @@ func main() {
   if len(flag.Args()) > 1 {
     refs = flag.Args()[1:]
   }
-  refs = append(refs, util.PipedStdin()...)
+
+  piped := util.PipedStdin()
+  if len(piped) > 1 {
+    url = piped[0]
+    refs = append(refs, piped[1:]...)
+  }
 
   tmp := strings.Split(url, "@")
   userPass := strings.Split(tmp[0], ":")
