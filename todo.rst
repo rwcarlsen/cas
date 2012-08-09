@@ -1,17 +1,14 @@
 
+Todo
+----
+
 * things affecting blob schemas
 
   - move blob.FileMeta Hidden field to be inside the filemeta Notes
 
   - consider moving FileMeta.Path into the Notes field somehow
 
-  - What if somebody wants an app that deals with metablobs that don't point to
-    any files? I want them to still use the standard FileMeta concept where
-    many apps can each pile their own meta-data into a single file (the Notes
-    field).
-
-      * maybe I could put the ContentRefs inside the Notes field? - interesting
-        idea eh?
+  - rename FileMeta to just Meta and make its RcasType be blob.MetaType
 
 * Security/authentication
 
@@ -38,20 +35,32 @@
 
 * make cli tools
 
-  - tagging mounted files with arbitrary meta-data - e.g.::
+  - rework mount/modify/rm toolchain to be as follows:
 
-      fad-tag [filename(s)] // list existing tags
-      fad-tag [tag1[,tag2]...] [filename(s)] // add new tags to files
-      fad-tag -d [tag1[,tag2]...] [filename(s)] // remove existing tags
+    - kill fad-rm tool
 
-  - features to add to fad-mount::
+    - fad-snap should work as it currently does
 
-      fad-mount -t=tag1,tag2 ... // adds additional constraint to mounting
+    - A generic fad-find tool that returns a list of blobrefs from a blobserver
 
-      // mounts all matching file blobs into the root directory
-      // mount fails if two files have the same name (or maybe it changes
-      // name to be unique?)
-      fad-mount -[f,flat] ... 
+       * based on path, tags, or other arbitrary meta-data
+
+    - A tool fad-mod that modifies arbitrary Notes meta-data of piped in object refs
+
+    - Modify fad-mount to take list of blobrefs (not object refs) to mount piped in
+
+    - A tool (fad-stat) to stat mounted files (e.g. return their timestamp, objectref,
+      etc.)
+
+    - Use examples::
+
+        // mount blobs that have a certain path into direcory mymount with
+        // /home/robert prefix removed
+        fad-find -path=/home/robert | fad-mount -root=mymount -prefix=/home/robert
+
+        // modify meta-data on a file: mark 'hidden' field as true and add
+        // 'failure' to a list of tags
+        fad-stat mymount/foo.txt | fad-mod hidden=true tag+=failure
 
   - mounting/inspecting an object's history::
 
@@ -61,7 +70,25 @@
 
       fad-share ??????
 
-* preliminarily done:
+decided against
+---------------
+
+  - What if somebody wants an app that deals with metablobs that don't point to
+    any files? I want them to still use the standard FileMeta concept where
+    many apps can each pile their own meta-data into a single file (the Notes
+    field).
+
+      * maybe I could put the ContentRefs inside the Notes field? - interesting
+        idea eh? - S
+
+      * why I don't like it:
+
+          Actually - I would like the meta-blobs to really stay meta-blobs.
+          If somebody has real, hardy, application data, it should go in
+          separate blobs referenced in ContentRefs.
+
+preliminarily done
+------------------
 
   - use https (TLS) instead of http on the blobserver
 
