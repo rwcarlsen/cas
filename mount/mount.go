@@ -14,11 +14,16 @@ import (
 
 var UntrackedErr = errors.New("mount: Illegal operation on untracked file")
 
+type Meta struct {
+  Path string
+  Hidden bool
+}
+
 type Mount struct {
   Client *blobserv.Client
   Root string // Mounted blobs are placed in this directory.
-  BlobPath string // All blobs under this meta-path will be mounted.
   Refs map[string]string
+  Prefix string
   PathFor func(*blob.FileMeta)string `json:"-"`
 }
 
@@ -57,15 +62,19 @@ func (m *Mount) Unpack(refs ...string) error {
       return err
     }
 
-    pth := filepath.Join(m.Root, m.PathFor(fm))
-    os.MkdirAll(filepath.Dir(pth), 0744)
-    f, err := os.Create(pth)
+    pth := m.PathFor(fm)
+    if pth == "" {
+      continue
+    }
+
+    full := filepath.Join(m.Root, pth)
+    os.MkdirAll(filepath.Dir(full), 0744)
+    f, err := os.Create(full)
     if err != nil {
       return err
     }
     f.Write(data)
     f.Close()
-    pth = m.PathFor(fm)
     pth = strings.Trim(pth, "./\\")
     m.Refs[pth] = fm.RcasObjectRef
   }
@@ -104,16 +113,16 @@ func (m *Mount) Snap(path string) error {
     if err != nil {
       return err
     }
-    rel, _ := filepath.Rel(m.Root, newfm.Path)
-    newfm.Path = filepath.Join(m.BlobPath, rel)
+    abs, _ := filepath.Abs(path)
+    rel, _ := filepath.Rel(m.Root, abs)
+    mpath := filepath.Dir(filepath.Join(m.Prefix, rel))
+    newfm.SetNotes("mount", &Meta{Path: mpath})
     chunks = append(chunks, obj)
   } else if err != nil {
     return err
   }
 
-  orig := newfm.Path
   chunks, err = newfm.LoadFromPath(path)
-  newfm.Path = orig
   if err != nil {
     return err
   }

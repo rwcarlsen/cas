@@ -1,25 +1,36 @@
 
 package main
+
 import (
   "fmt"
   "time"
   "flag"
+  "os"
+  "log"
   "strings"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobserv"
   "github.com/rwcarlsen/cas/query"
+  "github.com/rwcarlsen/cas/mount"
 )
 
 var max = flag.Int("max", 0, "maximum number of results to retrieve")
 var prefix = flag.String("path", "", "mount blobs under specified path")
+var showHidden = flag.Bool("hidden", false, "true to include hidden blobs in result")
+var showOld = flag.Bool("hist", false, "false to include histories tip")
 
 var cl *blobserv.Client
+
+var lg = log.New(os.Stderr, "fadfind: ", 0)
 
 func main() {
   flag.Parse()
   url := flag.Arg(0)
   tmp := strings.Split(url, "@")
   userPass := strings.Split(tmp[0], ":")
+  if len(userPass) != 2 || len(tmp) != 2 {
+    lg.Fatalln("Invalid blobserver address")
+  }
 
   cl = &blobserv.Client{
     User: userPass[0],
@@ -29,8 +40,7 @@ func main() {
 
   err := cl.Dial()
   if err != nil {
-    fmt.Println("Could not connect to blobserver: ", err)
-    return
+    lg.Fatalln("Could not connect to blobserver: ", err)
   }
 
   fmt.Println(url)
@@ -82,9 +92,17 @@ func filtFn(b *blob.Blob) bool {
     return false
   }
 
-  if !strings.HasPrefix(f.Path, strings.Trim(*prefix, "./\\")) {
+  var mm *mount.Meta
+  err = f.GetNotes("mount", mm)
+  if err != nil {
+    mm = &mount.Meta{}
+  }
+
+  if !strings.HasPrefix(mm.Path, strings.Trim(*prefix, "./\\")) {
     return false
-  } else if !isTip(b) {
+  } else if !*showOld && !isTip(b) {
+    return false
+  } else if !*showHidden && mm.Hidden {
     return false
   }
   return true

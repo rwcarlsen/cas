@@ -17,8 +17,7 @@ type FileMeta struct {
   RcasType string
   RcasObjectRef string
   Name string
-  Path string
-  Notes map[string][]byte
+  Notes map[string]string
   Size int64
   ContentRefs []string
 }
@@ -29,15 +28,15 @@ func NewFileMeta() *FileMeta {
   return &FileMeta{
     RcasType: File,
     ContentRefs: make([]string, 0),
+    Notes: make(map[string]string),
   }
 }
 
 // LoadFromPath fills in all meta fields (name, size, etc. by reading
 // the info from the file located at path. Blobs constituting the file's bytes
 // are returned. AddContentRefs is invoked for all the blobs returned.
-func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
-  m.Path = path
-  f, err := os.Open(m.Path)
+func (m *FileMeta) LoadFromPath(path string) ([]*Blob, error) {
+  f, err := os.Open(path)
   if err != nil {
     return nil, err
   }
@@ -47,7 +46,7 @@ func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
     return nil, err
   }
 
-  chunks = SplitRaw(data, DefaultChunkSize)
+  chunks := SplitRaw(data, DefaultChunkSize)
 
   // fill in meta fields
   abs, _ := filepath.Abs(path)
@@ -58,7 +57,6 @@ func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
   }
 
   m.Name = stat.Name()
-  m.Path = abs
   m.Size = stat.Size()
   m.ContentRefs = RefsFor(chunks)
 
@@ -69,12 +67,12 @@ func (m *FileMeta) LoadFromPath(path string) (chunks []*Blob, err error) {
 //
 // This should be used by apps to make valueable meta-data accessible to any app
 // that tries to use/find the file.
-func (m *FileMeta) AddNotes(id string, v interface{}) error {
+func (m *FileMeta) SetNotes(id string, v interface{}) error {
   data, err := json.Marshal(v)
   if err != nil {
     return errors.New("blob: failed to marshal notes into json")
   }
-  m.Notes[id] = data
+  m.Notes[id] = string(data)
   return nil
 }
 
@@ -83,10 +81,10 @@ func (m *FileMeta) AddNotes(id string, v interface{}) error {
 // This should be used by apps to make valueable meta-data accessible to any app
 // that tries to use/find the file.
 func (m *FileMeta) GetNotes(id string, v interface{}) error {
-  if data, ok := m.Notes[id]; ok {
-    err := json.Unmarshal(data, v)
+  if s, ok := m.Notes[id]; ok {
+    err := json.Unmarshal([]byte(s), v)
     if err != nil {
-      return errors.New("blob: failed to unmarshal json notes")
+      return errors.New("blob: failed to unmarshal json notes:" + err.Error())
     }
     return nil
   }

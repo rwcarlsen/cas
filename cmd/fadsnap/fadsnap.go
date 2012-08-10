@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-  m := mount.New(nil, nil)
+  m := mount.New(nil)
   err := m.Load("./.mount")
   if err != nil {
     fmt.Println(err)

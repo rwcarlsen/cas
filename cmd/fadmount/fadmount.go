@@ -12,7 +12,7 @@ import (
 )
 
 var root = flag.String("root", "./", "retrieved file structure is placed here")
-var blobPath = flag.String("path", "", "blobs under path are mounted into root directory")
+var prefix = flag.String("prefix", "", "path prefix that is removed before mounting")
 
 func main() {
   flag.Parse()
@@ -24,18 +24,24 @@ func main() {
   }
 
   piped := util.PipedStdin()
-  if len(piped) > 1 {
+  if len(piped) > 0 {
     url = piped[0]
+  }
+  if len(piped) > 1 {
     refs = append(refs, piped[1:]...)
   }
 
   tmp := strings.Split(url, "@")
   userPass := strings.Split(tmp[0], ":")
+  if len(userPass) != 2 || len(tmp) != 2 {
+    fmt.Println("Invalid blobserver address")
+    return
+  }
 
   m := mount.New(mountPath)
   m.ConfigClient(userPass[0], userPass[1], tmp[1])
   m.Root, _ = filepath.Abs(*root)
-  m.BlobPath = *blobPath
+  m.Prefix = *prefix
 
   err := m.Unpack(refs...)
   if err != nil {
@@ -49,7 +55,17 @@ func main() {
   }
 }
 
-func mountPath(fm *blob.FileMeta) string {
-  return filepath.Join(fm.Path, fm.Name)[len(*blobPath):]
+func mountPath(f *blob.FileMeta) string {
+  mm := &mount.Meta{}
+  err := f.GetNotes("mount", mm)
+
+  if *prefix == "" && err != nil {
+    return filepath.Join("pathless", f.Name)
+  }
+
+  if strings.HasPrefix(mm.Path, *prefix) {
+    return filepath.Join(mm.Path[len(*prefix):], f.Name)
+  }
+  return ""
 }
 

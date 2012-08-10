@@ -11,7 +11,10 @@ import (
   "path"
   "io"
   "mime"
+  "log"
 )
+
+var Dbg = log.New(os.Stderr, "debug: ", log.Lshortfile | log.Ltime)
 
 func DeferPrint() {
   if r := recover(); r != nil {
@@ -55,11 +58,10 @@ func LoadStatic(pth string, w http.ResponseWriter) error {
 }
 
 func PipedStdin() []string {
-  data, _ := ioutil.ReadAll(os.Stdin)
-
   var line string
   var err error
   refs := []string{}
+  data, _ := ioutil.ReadAll(os.Stdin)
   buff := bytes.NewBuffer(data)
   for err == nil {
     line, err = buff.ReadString('\n')
