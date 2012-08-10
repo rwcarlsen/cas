@@ -7,8 +7,6 @@ New
 
 * things affecting blob schemas
 
-  - consider moving FileMeta.Path into the Notes field somehow
-
   - rename FileMeta to just Meta and make its RcasType be blob.MetaType
 
 * Security/authentication
@@ -29,7 +27,10 @@ New
 
   - authentication requires two concepts:
 
-    * is the attempted operation within the 
+    * is the share valid (expiration, password, # uses, etc.)
+
+    * is the attempted operation within the share's privelages (get vs
+      put, if get - is ref authorized, etc.)
 
   - a share blob will help the blobserver know if the requested get/put
     blob operation is allowed
@@ -38,13 +39,15 @@ New
 
   - rework mount/modify/rm toolchain to be as follows:
 
-    - kill fad-rm tool
+    - kill fad-rm tool (superseded by fad-ref and fad-mod)
 
-    - fad-snap should work as it currently does
+    - A tool fad-mod that modifies arbitrary Notes meta-data of piped in
+      refs (tacking the new version as the tip of the piped ref's
+      RcasObjectRef)
 
-    - A tool fad-mod that modifies arbitrary Notes meta-data of piped in object refs
+    - A tool fad-ref that returns the object ref for the mounted file
 
-    - A tool (fad-stat) to stat mounted files (e.g. return their timestamp, objectref,
+    - A tool fad-stat to stat meta-data of piped in refs (e.g. return their timestamp, objectref,
       etc.)
 
     - Use examples::
@@ -54,11 +57,8 @@ New
         fad-find -path=/home/robert | fad-mount -root=mymount -prefix=/home/robert 
         // modify meta-data on a file: mark 'hidden' field as true and add
         // 'failure' to a list of tags
-        fad-stat mymount/foo.txt | fad-mod hidden=true tag+=failure
-
-  - mounting/inspecting an object's history::
-
-      fad-hist ??????
+        fad-ref foo.txt | fad-stat mymount/foo.txt 
+        fad-ref foo.txt | fad-mod hidden=true tag+=failure
 
   - creating share blobs corresponding to mounted files::
 
@@ -67,24 +67,20 @@ New
 In Progress
 -----------
 
-* things affecting blob schemas
-
-  - move blob.FileMeta Hidden field to be inside the filemeta Notes
-
-* cli tools
-
-  - A generic fad-find tool that returns a list of blobrefs from a blobserver
-
-    * based on path, tags, or other arbitrary meta-data
-
-  - A tool fad-mod that modifies arbitrary Notes meta-data of piped in object refs
-
-  - Modify fad-mount to take list of blobrefs (not object refs) to mount piped in
-
 preliminarily done
 ------------------
 
 - use https (TLS) instead of http on the blobserver
+
+- move blob.FileMeta Hidden field to be inside the filemeta Notes
+
+- move FileMeta.Path into the Notes field somehow
+
+  - Modify fad-mount to take list of blobrefs (not object refs) to mount piped in
+
+- A generic fad-find tool that returns a list of blobrefs from a blobserver
+
+  * based on path, tags, or other arbitrary meta-data
 
 decided against
 ---------------
@@ -102,4 +98,7 @@ decided against
     Actually - I would like the meta-blobs to really stay meta-blobs.
     If somebody has real, hardy, application data, it should go in
     separate blobs referenced in ContentRefs.
+
+- cli tool for mounting/inspecting an object's history. Just use fad-find,
+  fad-ref, fad-mount instead.
 
