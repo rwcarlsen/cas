@@ -76,7 +76,7 @@ func (m *Mount) Unpack(refs ...string) error {
     f.Write(data)
     f.Close()
     pth = strings.Trim(pth, "./\\")
-    m.Refs[pth] = fm.RcasObjectRef
+    m.Refs[pth] = ref
   }
   return nil
 }
@@ -86,7 +86,12 @@ func (m *Mount) GetTip(path string) (*blob.FileMeta, error) {
 
   var fm = &blob.FileMeta{}
   if ref, ok := m.Refs[path]; ok {
-    b, err := m.Client.ObjectTip(ref)
+    b, err := m.Client.GetBlob(ref)
+    if err != nil {
+      return nil, err
+    }
+
+    b, err = m.Client.ObjectTip(b.ObjectRef())
     if err != nil {
       return nil, err
     }
@@ -107,7 +112,6 @@ func (m *Mount) Snap(path string) error {
   if err == UntrackedErr {
     newfm = blob.NewFileMeta()
     obj := blob.NewObject()
-    m.Refs[path] = obj.Ref()
     newfm.RcasObjectRef = obj.Ref()
     chunks, err = newfm.LoadFromPath(path)
     if err != nil {
@@ -132,6 +136,8 @@ func (m *Mount) Snap(path string) error {
     return err
   }
   chunks = append(chunks, b)
+
+  m.Refs[path] = b.Ref()
 
   for _, b := range chunks {
     err := m.Client.PutBlob(b)
