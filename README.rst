@@ -39,14 +39,6 @@ New
 
   - rework mount/modify/rm toolchain to be as follows:
 
-    - kill fad-rm tool (superseded by fad-ref and fad-mod)
-
-    - A tool fad-mod that modifies arbitrary Notes meta-data of piped in
-      refs (tacking the new version as the tip of the piped ref's
-      RcasObjectRef)
-
-    - A tool fad-ref that returns the object ref for the mounted file
-
     - A tool fad-stat to stat meta-data of piped in refs (e.g. return their timestamp, objectref,
       etc.)
 
@@ -82,6 +74,11 @@ preliminarily done
 
   * based on path, tags, or other arbitrary meta-data
 
+- A tool fad-mod that modifies arbitrary Notes meta-data of listed or
+  piped file names. - so far only modifies mount meta-data
+
+- kill fad-rm tool (superseded by fad-ref and fad-mod)
+
 decided against
 ---------------
 
@@ -101,4 +98,7 @@ decided against
 
 - cli tool for mounting/inspecting an object's history. Just use fad-find,
   fad-ref, fad-mount instead.
+
+- A cli tool fad-ref that returns the object ref for the mounted file -
+      doesn't fit well with mount tools. Scrapped.
 
