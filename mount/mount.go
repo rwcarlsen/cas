@@ -33,6 +33,20 @@ func New(pathFn func(*blob.FileMeta)string) *Mount {
   }
 }
 
+func Load(pth string) (*Mount, error) {
+  data, err := ioutil.ReadFile(pth)
+  if err != nil {
+    return nil, err
+  }
+
+  m := New(nil)
+  err = json.Unmarshal(data, m)
+  if err != nil {
+    return nil, err
+  }
+  return m, nil
+}
+
 func (m *Mount) ConfigClient(user, pass, host string) {
   m.Client = &blobserv.Client{
     User: user,
@@ -75,14 +89,14 @@ func (m *Mount) Unpack(refs ...string) error {
     }
     f.Write(data)
     f.Close()
-    pth = strings.Trim(pth, "./\\")
+    pth = keyClean(pth)
     m.Refs[pth] = ref
   }
   return nil
 }
 
 func (m *Mount) GetTip(path string) (*blob.FileMeta, error) {
-  path = strings.Trim(path, "./\\")
+  path = keyClean(path)
 
   var fm = &blob.FileMeta{}
   if ref, ok := m.Refs[path]; ok {
@@ -105,7 +119,7 @@ func (m *Mount) GetTip(path string) (*blob.FileMeta, error) {
 }
 
 func (m *Mount) Snap(path string) error {
-  path = strings.Trim(path, "./\\")
+  path = keyClean(path)
 
   var chunks []*blob.Blob
   newfm, err := m.GetTip(path)
@@ -117,9 +131,8 @@ func (m *Mount) Snap(path string) error {
     if err != nil {
       return err
     }
-    abs, _ := filepath.Abs(path)
-    rel, _ := filepath.Rel(m.Root, abs)
-    mpath := filepath.Dir(filepath.Join(m.Prefix, rel))
+
+    mpath := filepath.Dir(filepath.Join(m.Prefix, m.keyPath(path)))
     newfm.SetNotes("mount", &Meta{Path: mpath})
     chunks = append(chunks, obj)
   } else if err != nil {
@@ -148,6 +161,19 @@ func (m *Mount) Snap(path string) error {
   return nil
 }
 
+func (m *Mount) keyPath(pth string) string {
+  abs, _ := filepath.Abs(pth)
+  rel, _ := filepath.Rel(m.Root, abs)
+  return keyClean(rel)
+}
+
+func (m *Mount) GetRef(pth string) (string, error) {
+  if ref, ok := m.Refs[m.keyPath(pth)]; ok {
+    return ref, nil
+  }
+  return "", errors.New("mount: No tracked file for path '" + pth + "'")
+}
+
 func (m *Mount) Save(pth string) error {
   data, err := json.Marshal(m)
   if err != nil {
@@ -165,16 +191,7 @@ func (m *Mount) Save(pth string) error {
   return nil
 }
 
-func (m *Mount) Load(pth string) error {
-  data, err := ioutil.ReadFile(pth)
-  if err != nil {
-    return err
-  }
-
-  err = json.Unmarshal(data, m)
-  if err != nil {
-    return err
-  }
-  return nil
+func keyClean(path string) string {
+  return strings.Trim(path, "./\\")
 }
 

@@ -21,14 +21,12 @@ func main() {
   refs := []string{}
   if len(flag.Args()) > 1 {
     refs = flag.Args()[1:]
-  }
-
-  piped := util.PipedStdin()
-  if len(piped) > 0 {
+  } else {
+    piped := util.PipedStdin()
     url = piped[0]
-  }
-  if len(piped) > 1 {
-    refs = append(refs, piped[1:]...)
+    if len(piped) > 1 {
+      refs = piped[1:]
+    }
   }
 
   tmp := strings.Split(url, "@")
