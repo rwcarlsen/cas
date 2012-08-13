@@ -55,7 +55,7 @@ func main() {
 
 func mountPath(f *blob.FileMeta) string {
   mm := &mount.Meta{}
-  err := f.GetNotes("mount", mm)
+  err := f.GetNotes(mount.Key, mm)
 
   if *prefix == "" && err != nil {
     return filepath.Join("pathless", f.Name)

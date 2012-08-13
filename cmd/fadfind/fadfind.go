@@ -93,7 +93,7 @@ func filtFn(b *blob.Blob) bool {
   }
 
   var mm *mount.Meta
-  err = f.GetNotes("mount", mm)
+  err = f.GetNotes(mount.Key, mm)
   if err != nil {
     mm = &mount.Meta{}
   }

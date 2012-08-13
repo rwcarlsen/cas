@@ -1,4 +1,7 @@
 
+// mount is used to manage mounting of file blobs.
+
+// Blobs can be easily mounted into folders, have updated state snapshot
 package mount
 
 import (
@@ -10,10 +13,15 @@ import (
   "path/filepath"
   "github.com/rwcarlsen/cas/blob"
   "github.com/rwcarlsen/cas/blobserv"
+  "github.com/rwcarlsen/cas/util"
 )
 
 var UntrackedErr = errors.New("mount: Illegal operation on untracked file")
 
+const Key = "mount"
+
+// Meta contains mount-related meta-information that is stored within each
+// FileMeta's Notes field under Key.
 type Meta struct {
   Path string
   Hidden bool
@@ -27,12 +35,14 @@ type Mount struct {
   PathFor func(*blob.FileMeta)string `json:"-"`
 }
 
+// New returns a new mount object with no client configuration.
 func New(pathFn func(*blob.FileMeta)string) *Mount {
   return &Mount{
     PathFor: pathFn,
   }
 }
 
+// Load creates a mount object from a saved mount file.
 func Load(pth string) (*Mount, error) {
   data, err := ioutil.ReadFile(pth)
   if err != nil {
@@ -47,6 +57,26 @@ func Load(pth string) (*Mount, error) {
   return m, nil
 }
 
+// Save persists the mount state/configuration to a file
+func (m *Mount) Save(name string) error {
+  data, err := json.Marshal(m)
+  if err != nil {
+    return err
+  }
+
+  os.MkdirAll(filepath.Dir(name), 0744)
+  f, err := os.Create(name)
+  if err != nil {
+    return err
+  }
+  defer f.Close()
+
+  f.Write(data)
+  return nil
+}
+
+// ConfigClient allows convenient easy setting of the blobserver client info
+// associated with this mount.
 func (m *Mount) ConfigClient(user, pass, host string) {
   m.Client = &blobserv.Client{
     User: user,
@@ -55,6 +85,8 @@ func (m *Mount) ConfigClient(user, pass, host string) {
   }
 }
 
+// Unpack mounts files associated with each given ref into the directory
+// specified by Root and the associated FileMeta's mount meta-data.
 func (m *Mount) Unpack(refs ...string) error {
   err := m.Client.Dial()
   if err != nil {
@@ -95,34 +127,15 @@ func (m *Mount) Unpack(refs ...string) error {
   return nil
 }
 
-func (m *Mount) GetTip(path string) (*blob.FileMeta, error) {
-  path = keyClean(path)
-
-  var fm = &blob.FileMeta{}
-  if ref, ok := m.Refs[path]; ok {
-    b, err := m.Client.GetBlob(ref)
-    if err != nil {
-      return nil, err
-    }
-
-    b, err = m.Client.ObjectTip(b.ObjectRef())
-    if err != nil {
-      return nil, err
-    }
-    err = blob.Unmarshal(b, fm)
-    if err != nil {
-      return nil, err
-    }
-    return fm, nil
-  }
-  return nil, UntrackedErr
-}
-
+// Snap creates and sends an object-associated, updated snapshot of a file's
+// bytes to the blobserver.
+//
+// All meta-data associated with the file is left unchanged.
 func (m *Mount) Snap(path string) error {
   path = keyClean(path)
 
   var chunks []*blob.Blob
-  newfm, err := m.GetTip(path)
+  newfm, err := m.getTip(path)
   if err == UntrackedErr {
     newfm = blob.NewFileMeta()
     obj := blob.NewObject()
@@ -133,7 +146,7 @@ func (m *Mount) Snap(path string) error {
     }
 
     mpath := filepath.Dir(filepath.Join(m.Prefix, m.keyPath(path)))
-    newfm.SetNotes("mount", &Meta{Path: mpath})
+    newfm.SetNotes(Key, &Meta{Path: mpath})
     chunks = append(chunks, obj)
   } else if err != nil {
     return err
@@ -161,12 +174,43 @@ func (m *Mount) Snap(path string) error {
   return nil
 }
 
-func (m *Mount) keyPath(pth string) string {
-  abs, _ := filepath.Abs(pth)
-  rel, _ := filepath.Rel(m.Root, abs)
-  return keyClean(rel)
+// GetMeta returns the Mount Notes associated with the given file.
+func (m *Mount) GetMeta(pth string) (mm *Meta, err error) {
+  defer func() {recover()}()
+
+  ref, err := m.GetRef(pth)
+  util.Check(err)
+  fm, err := m.getTip(ref)
+  util.Check(err)
+
+  mm = &Meta{}
+  err = fm.GetNotes(Key, mm)
+  if err != nil {
+    mm = &Meta{}
+  }
+  return mm, nil
 }
 
+// SetMeta sets the mount Notes associated with the given file.
+func (m *Mount) SetMeta(pth string, mm *Meta) (err error) {
+  defer func() {recover()}()
+
+  ref, err := m.GetRef(pth)
+  util.Check(err)
+  fm, err := m.getTip(ref)
+  util.Check(err)
+  err = fm.SetNotes(Key, mm)
+  util.Check(err)
+
+  b, err := blob.Marshal(fm)
+  util.Check(err)
+  err = m.Client.PutBlob(b)
+  util.Check(err)
+
+  return nil
+}
+
+// GetRef returns the meta blobref associated with the pth specified file.
 func (m *Mount) GetRef(pth string) (string, error) {
   if ref, ok := m.Refs[m.keyPath(pth)]; ok {
     return ref, nil
@@ -174,21 +218,35 @@ func (m *Mount) GetRef(pth string) (string, error) {
   return "", errors.New("mount: No tracked file for path '" + pth + "'")
 }
 
-func (m *Mount) Save(pth string) error {
-  data, err := json.Marshal(m)
-  if err != nil {
-    return err
-  }
+// getTip returns the FileMeta blob for the most recent version of the object
+// for which the file specified by path is a part.
+func (m *Mount) getTip(path string) (*blob.FileMeta, error) {
+  path = keyClean(path)
 
-  os.MkdirAll(filepath.Dir(pth), 0744)
-  f, err := os.Create(pth)
-  if err != nil {
-    return err
-  }
-  defer f.Close()
+  var fm = &blob.FileMeta{}
+  if ref, ok := m.Refs[path]; ok {
+    b, err := m.Client.GetBlob(ref)
+    if err != nil {
+      return nil, err
+    }
 
-  f.Write(data)
-  return nil
+    b, err = m.Client.ObjectTip(b.ObjectRef())
+    if err != nil {
+      return nil, err
+    }
+    err = blob.Unmarshal(b, fm)
+    if err != nil {
+      return nil, err
+    }
+    return fm, nil
+  }
+  return nil, UntrackedErr
+}
+
+func (m *Mount) keyPath(pth string) string {
+  abs, _ := filepath.Abs(pth)
+  rel, _ := filepath.Rel(m.Root, abs)
+  return keyClean(rel)
 }
 
 func keyClean(path string) string {
