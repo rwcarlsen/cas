@@ -33,20 +33,21 @@ New
 
 * cli tools
 
-  - rework mount/modify/rm toolchain to be as follows:
+  - make cli tools (mount, find, snap, mod, stat) work from any nesting level
+    within a mount directory (not just the mount root).
 
-    - A tool fad-stat to stat meta-data of piped in refs (e.g. return their timestamp, objectref,
-      etc.)
+  - A tool fad-stat to stat meta-data of piped in refs (e.g. return their timestamp, objectref,
+    etc.)
 
-    - Use examples::
+  - Use examples::
 
-        // mount blobs that have a certain path into direcory mymount with
-        // /home/robert prefix removed
-        fad-find -path=/home/robert | fad-mount -root=mymount -prefix=/home/robert 
-        // modify meta-data on a file: mark 'hidden' field as true and add
-        // 'failure' to a list of tags
-        fad-ref foo.txt | fad-stat mymount/foo.txt 
-        fad-ref foo.txt | fad-mod hidden=true tag+=failure
+      // mount blobs that have a certain path into direcory mymount with
+      // /home/robert prefix removed
+      fad-find -path=/home/robert | fad-mount -root=mymount -prefix=/home/robert 
+      // modify meta-data on a file: mark 'hidden' field as true and add
+      // 'failure' to a list of tags
+      fad-ref foo.txt | fad-stat mymount/foo.txt 
+      fad-ref foo.txt | fad-mod hidden=true tag+=failure
 
   - creating share blobs corresponding to mounted files::
 
