@@ -30,7 +30,7 @@ const (
 const (
   Type = "RcasType"
   MetaType = "meta" // meta type with no bytes payload
-  Share = "share" // defines permissions for sharing a target blob
+  ShareType = "share" // defines permissions for sharing a target blob
   Object = "object" // random, arbitrary blob used to simulate mutability
   NoType = "no-type" // blob is json but has no Type field
 )

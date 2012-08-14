@@ -8,9 +8,7 @@ import (
   "strconv"
   "errors"
   "path"
-  "io"
   "io/ioutil"
-  "encoding/json"
   "net/http"
   "mime/multipart"
   "github.com/rwcarlsen/cas/blob"
@@ -76,12 +74,6 @@ func configServ(addr, dbPath string) *Server {
   return bs
 }
 
-type Server struct {
-  Db *blobdb.Dbase
-  Serv *http.Server
-  inds map[string]index.Index
-}
-
 func defaultHttpServer() *http.Server {
   return &http.Server{
     Addr: DefaultAddr,
@@ -89,6 +81,12 @@ func defaultHttpServer() *http.Server {
     WriteTimeout: defaultWriteTimeout,
     MaxHeaderBytes: defaultHeaderMax,
   }
+}
+
+type Server struct {
+  Db *blobdb.Dbase
+  Serv *http.Server
+  inds map[string]index.Index
 }
 
 func (bs *Server) AddIndex(name string, ind index.Index) error {
@@ -127,7 +125,6 @@ func (bs *Server) prepareListen() {
   http.Handle("/ref/", auth.Handler{&getHandler{bs: bs}})
   http.Handle("/put/", auth.Handler{&putHandler{bs: bs}})
   http.Handle("/index/", auth.Handler{&indexHandler{bs: bs}})
-  http.Handle("/share/", &shareHandler{bs: bs})
 }
 
 func (bs *Server) ListenAndServe() error {
@@ -159,9 +156,48 @@ func (h *getHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
   }()
 
   ref := path.Base(req.URL.Path)
-
   b, err := h.bs.Db.Get(ref)
   util.Check(err)
+
+  w.Header().Set(ActionStatus, ActionSuccess)
+  w.Write(b.Content())
+  fmt.Println("successful retrieval")
+}
+
+// Unauthorized checks for and handles cases where authentication can occur via
+// share blobs.
+func (h *getHandler) Unauthorized(w http.ResponseWriter, req *http.Request) {
+  defer func() {
+    if r := recover(); r != nil {
+      w.Header().Set(ActionStatus, ActionFailed)
+      fmt.Println("blob post failed: ", r)
+    }
+  }()
+
+  shareRef := req.FormValue("via")
+  if shareRef == "" {
+    auth.SendUnauthorized(w)
+    return
+  }
+
+  b, err := h.bs.Db.Get(shareRef)
+  if err != nil {
+    auth.SendUnauthorized(w)
+    return
+  }
+
+  share := &blob.Share{}
+  err = blob.Unmarshal(b, share)
+  util.Check(err)
+
+  ref := path.Base(req.URL.Path)
+  b, err = h.bs.Db.Get(ref)
+  util.Check(err)
+
+  if !share.AuthorizedGet(b) {
+    auth.SendUnauthorized(w)
+    return
+  }
 
   w.Header().Set(ActionStatus, ActionSuccess)
   w.Write(b.Content())
@@ -193,6 +229,12 @@ func (h *putHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
   w.Header().Set(ActionStatus, ActionSuccess)
   fmt.Println("successful post")
+}
+
+// Unauthorized checks for and handles cases where authentication can occur via
+// share blobs.
+func (h *putHandler) Unauthorized(w http.ResponseWriter, req *http.Request) {
+  auth.SendUnauthorized(w)
 }
 
 type indexHandler struct {
@@ -239,47 +281,7 @@ func (h *indexHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
   }
 }
 
-type shareHandler struct {
-  bs *Server
-}
-
-func (h *shareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-  defer func() {
-    if r := recover(); r != nil {
-      fmt.Println(r)
-      m := map[string]string{}
-      m["status"] = "blob retrieval failed: " + r.(error).Error()
-      data, _ := json.Marshal(&m)
-      w.Write(data)
-    }
-  }()
-
-  ref := req.FormValue("ref")
-  b, err := h.bs.Db.Get(ref)
-  util.Check(err)
-
-  if b.Type() != blob.Share {
-    io.WriteString(w, "Unauthorized")
-    return
-  }
-
-  var sh blob.ShareMeta
-  err = blob.Unmarshal(b, &sh)
-  if !sh.IsAuthorized() {
-    io.WriteString(w, "Unauthorized")
-    return
-  }
-
-  fname := "what a name"
-
-  head := w.Header()
-  head.Set("Content-Type", "application/octet-stream")
-  head.Set("Content-Disposition", "attachment; filename=\"" + fname + "\"")
-  head.Set("Content-Transfer-Encoding", "binary")
-  head.Set("Accept-Ranges", "bytes")
-  head.Set("Cache-Control", "private")
-  head.Set("Pragma", "private")
-  head.Set("Expires", "Mon, 26 Jul 1997 05:00:00 GMT")
-  w.Write(b.Content())
+func (h *indexHandler) Unauthorized(w http.ResponseWriter, req *http.Request) {
+  auth.SendUnauthorized(w)
 }
 

@@ -86,14 +86,19 @@ func RequireAuth(handler func(conn http.ResponseWriter, req *http.Request)) func
 	}
 }
 
-type Handler struct {
+type AuthHandler interface {
   http.Handler
+  Unauthorized(http.ResponseWriter, *http.Request)
+}
+
+type Handler struct {
+  AuthHandler
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   if mode.IsAuthorized(r) {
-    h.Handler.ServeHTTP(w, r)
+    h.AuthHandler.ServeHTTP(w, r)
   } else {
-    SendUnauthorized(w)
+    h.AuthHandler.Unauthorized(w, r)
   }
 }
