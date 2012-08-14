@@ -14,10 +14,7 @@ type Photo struct {
   ThumbFileRef string
 }
 
-func IsValidImage(m *blob.FileMeta) bool {
-  if m.RcasType != blob.File {
-    return false
-  }
+func IsValidImage(m *blob.Meta) bool {
   switch strings.ToLower(path.Ext(m.Name)) {
     case ".jpg", ".jpeg", ".gif", ".png": return true
   }

@@ -21,7 +21,7 @@ var UntrackedErr = errors.New("mount: Illegal operation on untracked file")
 const Key = "mount"
 
 // Meta contains mount-related meta-information that is stored within each
-// FileMeta's Notes field under Key.
+// Meta's Notes field under Key.
 type Meta struct {
   Path string
   Hidden bool
@@ -32,11 +32,11 @@ type Mount struct {
   Root string // Mounted blobs are placed in this directory.
   Refs map[string]string
   Prefix string
-  PathFor func(*blob.FileMeta)string `json:"-"`
+  PathFor func(*blob.Meta)string `json:"-"`
 }
 
 // New returns a new mount object with no client configuration.
-func New(pathFn func(*blob.FileMeta)string) *Mount {
+func New(pathFn func(*blob.Meta)string) *Mount {
   return &Mount{
     PathFor: pathFn,
   }
@@ -86,7 +86,7 @@ func (m *Mount) ConfigClient(user, pass, host string) {
 }
 
 // Unpack mounts files associated with each given ref into the directory
-// specified by Root and the associated FileMeta's mount meta-data.
+// specified by Root and the associated Meta's mount meta-data.
 func (m *Mount) Unpack(refs ...string) error {
   err := m.Client.Dial()
   if err != nil {
@@ -100,7 +100,7 @@ func (m *Mount) Unpack(refs ...string) error {
       return err
     }
 
-    fm := &blob.FileMeta{}
+    fm := &blob.Meta{}
     err = blob.Unmarshal(b, fm)
 
     fm, data, err := m.Client.ReconstituteFile(b.Ref())
@@ -137,7 +137,7 @@ func (m *Mount) Snap(path string) error {
   var chunks []*blob.Blob
   newfm, err := m.getTip(path)
   if err == UntrackedErr {
-    newfm = blob.NewFileMeta()
+    newfm = blob.NewMeta()
     obj := blob.NewObject()
     newfm.RcasObjectRef = obj.Ref()
     chunks, err = newfm.LoadFromPath(path)
@@ -218,12 +218,12 @@ func (m *Mount) GetRef(pth string) (string, error) {
   return "", errors.New("mount: No tracked file for path '" + pth + "'")
 }
 
-// getTip returns the FileMeta blob for the most recent version of the object
+// getTip returns the Meta blob for the most recent version of the object
 // for which the file specified by path is a part.
-func (m *Mount) getTip(path string) (*blob.FileMeta, error) {
+func (m *Mount) getTip(path string) (*blob.Meta, error) {
   path = keyClean(path)
 
-  var fm = &blob.FileMeta{}
+  var fm = &blob.Meta{}
   if ref, ok := m.Refs[path]; ok {
     b, err := m.Client.GetBlob(ref)
     if err != nil {

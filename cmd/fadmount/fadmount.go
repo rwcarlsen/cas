@@ -53,7 +53,7 @@ func main() {
   }
 }
 
-func mountPath(f *blob.FileMeta) string {
+func mountPath(f *blob.Meta) string {
   mm := &mount.Meta{}
   err := f.GetNotes(mount.Key, mm)
 

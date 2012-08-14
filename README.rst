@@ -5,10 +5,6 @@ Cas status and todo
 New
 ---
 
-* things affecting blob schemas
-
-  - rename FileMeta to just Meta and make its RcasType be blob.MetaType
-
 * Security/authentication
 
   - way to manage multiple logins (maybe through share blobs)
@@ -64,9 +60,9 @@ preliminarily done
 
 - use https (TLS) instead of http on the blobserver
 
-- move blob.FileMeta Hidden field to be inside the filemeta Notes
+- move blob.Meta Hidden field to be inside the filemeta Notes
 
-- move FileMeta.Path into the Notes field somehow
+- move Meta.Path into the Notes field somehow
 
   - Modify fad-mount to take list of blobrefs (not object refs) to mount piped in
 
@@ -79,11 +75,15 @@ preliminarily done
 
 - kill fad-rm tool (superseded by fad-ref and fad-mod)
 
+* things affecting blob schemas
+
+  - rename blob.FileMeta to just Meta and make its RcasType be blob.MetaType
+
 decided against
 ---------------
 
 - What if somebody wants an app that deals with metablobs that don't point to
-  any files? I want them to still use the standard FileMeta concept where
+  any files? I want them to still use the standard Meta concept where
   many apps can each pile their own meta-data into a single file (the Notes
   field).
 

@@ -52,7 +52,7 @@ func putfiles(c *blobserv.Client, w http.ResponseWriter, req *http.Request) {
 }
 
 func sendFileBlobs(c *blobserv.Client, part *multipart.Part) (respMeta map[string]interface{}) {
-  meta := blob.NewFileMeta()
+  meta := blob.NewMeta()
   defer func() {
     respMeta = map[string]interface{}{}
     respMeta["name"] = meta.Name

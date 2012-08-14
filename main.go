@@ -76,7 +76,7 @@ func testFile() {
     return
   }
 
-  meta := blob.NewFileMeta()
+  meta := blob.NewMeta()
   blobs, err := meta.LoadFromPath(testfilepath)
   if err != nil {
     fmt.Println(err)

@@ -86,7 +86,7 @@ func getMatches() []string {
 }
 
 func filtFn(b *blob.Blob) bool {
-  f := &blob.FileMeta{}
+  f := &blob.Meta{}
   err := blob.Unmarshal(b, f)
   if err != nil {
     return false

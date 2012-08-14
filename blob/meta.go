@@ -13,7 +13,7 @@ const (
   DefaultChunkSize = 1 << 24 // 16Mb
 )
 
-type FileMeta struct {
+type Meta struct {
   RcasType string
   RcasObjectRef string
   Name string
@@ -22,11 +22,11 @@ type FileMeta struct {
   ContentRefs []string
 }
 
-// NewFileMeta creates a map containing meta-data for a file
+// NewMeta creates a map containing meta-data for a file
 // at the specified path.
-func NewFileMeta() *FileMeta {
-  return &FileMeta{
-    RcasType: File,
+func NewMeta() *Meta {
+  return &Meta{
+    RcasType: MetaType,
     ContentRefs: make([]string, 0),
     Notes: make(map[string]string),
   }
@@ -35,7 +35,7 @@ func NewFileMeta() *FileMeta {
 // LoadFromPath fills in all meta fields (name, size, etc. by reading
 // the info from the file located at path. Blobs constituting the file's bytes
 // are returned. AddContentRefs is invoked for all the blobs returned.
-func (m *FileMeta) LoadFromPath(path string) ([]*Blob, error) {
+func (m *Meta) LoadFromPath(path string) ([]*Blob, error) {
   f, err := os.Open(path)
   if err != nil {
     return nil, err
@@ -67,7 +67,7 @@ func (m *FileMeta) LoadFromPath(path string) ([]*Blob, error) {
 //
 // This should be used by apps to make valueable meta-data accessible to any app
 // that tries to use/find the file.
-func (m *FileMeta) SetNotes(id string, v interface{}) error {
+func (m *Meta) SetNotes(id string, v interface{}) error {
   data, err := json.Marshal(v)
   if err != nil {
     return errors.New("blob: failed to marshal notes into json")
@@ -80,7 +80,7 @@ func (m *FileMeta) SetNotes(id string, v interface{}) error {
 //
 // This should be used by apps to make valueable meta-data accessible to any app
 // that tries to use/find the file.
-func (m *FileMeta) GetNotes(id string, v interface{}) error {
+func (m *Meta) GetNotes(id string, v interface{}) error {
   if s, ok := m.Notes[id]; ok {
     err := json.Unmarshal([]byte(s), v)
     if err != nil {
@@ -111,16 +111,16 @@ func Reconstitute(blobs ...*Blob) []byte {
   return data
 }
 
-func DirBlobsAndMeta(path string) (metas []*FileMeta, blobs []*Blob, err error) {
+func DirBlobsAndMeta(path string) (metas []*Meta, blobs []*Blob, err error) {
   blobs = make([]*Blob, 0)
-  metas = make([]*FileMeta, 0)
+  metas = make([]*Meta, 0)
 
   walkFn := func(path string, info os.FileInfo, inerr error) error {
     if info.IsDir() {
       return nil
     }
 
-    meta := NewFileMeta()
+    meta := NewMeta()
     newblobs, err := meta.LoadFromPath(path)
     if err != nil {
       return err

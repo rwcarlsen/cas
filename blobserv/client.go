@@ -83,13 +83,13 @@ func (c *Client) GetBlobContent(ref string) ([]byte, error) {
   return content, nil
 }
 
-func (c *Client) ReconstituteFile(ref string) (m *blob.FileMeta, content []byte, err error) {
+func (c *Client) ReconstituteFile(ref string) (m *blob.Meta, content []byte, err error) {
   b, err := c.GetBlob(ref)
   if err != nil {
     return nil, nil, err
   }
 
-  m = &blob.FileMeta{}
+  m = &blob.Meta{}
   err = blob.Unmarshal(b, m)
   if err != nil {
     return nil, nil, err

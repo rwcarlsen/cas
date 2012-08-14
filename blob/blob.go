@@ -29,8 +29,7 @@ const (
 // universal TypeField values
 const (
   Type = "RcasType"
-  File = "file" // generic meta type referring to bytes payload
-  MetaNode = "meta-node" // meta type with no bytes payload
+  MetaType = "meta" // meta type with no bytes payload
   Share = "share" // defines permissions for sharing a target blob
   Object = "object" // random, arbitrary blob used to simulate mutability
   NoType = "no-type" // blob is json but has no Type field
