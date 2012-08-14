@@ -33,6 +33,11 @@ New
 
 * cli tools
 
+  - make fad-snap optionally work on a piped or arg list of files instead
+    of always walking the entire root directory
+
+  - make fad-snap only make new snapshots of files that have changed.
+
   - make cli tools (mount, find, snap, mod, stat) work from any nesting level
     within a mount directory (not just the mount root).
 
