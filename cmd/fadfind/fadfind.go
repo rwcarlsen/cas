@@ -86,13 +86,13 @@ func getMatches() []string {
 }
 
 func filtFn(b *blob.Blob) bool {
-  f := &blob.Meta{}
+  f := blob.NewMeta()
   err := blob.Unmarshal(b, f)
   if err != nil {
     return false
   }
 
-  var mm *mount.Meta
+  mm := &mount.Meta{}
   err = f.GetNotes(mount.Key, mm)
   if err != nil {
     mm = &mount.Meta{}

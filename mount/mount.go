@@ -178,9 +178,7 @@ func (m *Mount) Snap(path string) error {
 func (m *Mount) GetMeta(pth string) (mm *Meta, err error) {
   defer func() {recover()}()
 
-  ref, err := m.GetRef(pth)
-  util.Check(err)
-  fm, err := m.getTip(ref)
+  fm, err := m.getTip(pth)
   util.Check(err)
 
   mm = &Meta{}
@@ -195,9 +193,7 @@ func (m *Mount) GetMeta(pth string) (mm *Meta, err error) {
 func (m *Mount) SetMeta(pth string, mm *Meta) (err error) {
   defer func() {recover()}()
 
-  ref, err := m.GetRef(pth)
-  util.Check(err)
-  fm, err := m.getTip(ref)
+  fm, err := m.getTip(pth)
   util.Check(err)
   err = fm.SetNotes(Key, mm)
   util.Check(err)
