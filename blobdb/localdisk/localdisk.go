@@ -64,7 +64,9 @@ func (db *Dbase) Enumerate(after string, limit int) ([]string, error) {
 	refs := []string{}
 	for remain > 0 {
 		names, err := f.Readdirnames(32768)
-		if err != nil {
+		if err == io.EOF {
+			return refs, nil
+		} else if err != nil {
 			return nil, err
 		}
 
