@@ -32,25 +32,25 @@ func (db *Dbase) Get(ref string) (r io.ReadCloser, err error) {
 	return os.Open(p)
 }
 
-func (db *Dbase) Put(r io.Reader) error {
+func (db *Dbase) Put(r io.Reader) (ref string, err error) {
 	var buf1, buf2 bytes.Buffer
 	mw := io.MultiWriter(&buf1, &buf2)
 	if _, err := io.Copy(mw, r); err != nil {
-		return err
+		return "", err
 	}
-	ref := blobdb.MakeBlobRef(&buf1)
+	ref = blobdb.MakeBlobRef(&buf1)
 
 	p := path.Join(db.location, ref)
 	f, err := os.Create(p)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer f.Close()
 
 	if _, err := io.Copy(f, &buf2); err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return ref, nil
 }
 
 func (db *Dbase) Enumerate(after string, limit int) ([]string, error) {
