@@ -4,8 +4,8 @@ import (
 	"crypto"
 	_ "crypto/sha256"
 	"fmt"
-	"strings"
 	"io"
+	"strings"
 )
 
 var (
@@ -25,14 +25,6 @@ func init() {
 	}
 }
 
-func hashToName(h crypto.Hash) string {
-	return hash2Name[h]
-}
-
-func nameToHash(n string) crypto.Hash {
-	return name2Hash[n]
-}
-
 type Interface interface {
 	Get(string) (io.ReadCloser, error)
 	Put(r io.Reader) (string, error)
@@ -44,7 +36,7 @@ func MakeBlobRef(r io.Reader) string {
 	if _, err := io.Copy(h, r); err != nil {
 		panic(err)
 	}
-	return hashToName(DefaultHash) + NameHashSep + fmt.Sprintf("%x", h.Sum(nil))
+	return hash2Name[DefaultHash] + NameHashSep + fmt.Sprintf("%x", h.Sum(nil))
 }
 
 func blobRefParts(ref string) (hash crypto.Hash, sum string) {
@@ -52,7 +44,7 @@ func blobRefParts(ref string) (hash crypto.Hash, sum string) {
 	if len(parts) != 2 {
 		panic("blobdb: Invalid blob ref " + ref)
 	}
-	return nameToHash(parts[0]), parts[1]
+	return name2Hash[parts[0]], parts[1]
 }
 
 func VerifyBlob(data []byte, ref string) bool {

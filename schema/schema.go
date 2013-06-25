@@ -16,7 +16,15 @@ const (
 	PropDel           = "DelProperty"
 )
 
+type Type string
+
+const (
+	Tobject   Type = "object"
+	Tmutation      = "mutation"
+)
+
 type Object struct {
+	Kind    Type
 	Created time.Time
 	Meta    string
 	Random  string
@@ -25,15 +33,24 @@ type Object struct {
 func NewObject(meta string) *Object {
 	rb := make([]byte, 32)
 	rand.Read(rb)
-	return &Object{time.Now(), meta, fmt.Sprintf("%x", rb)}
+	return &Object{Tobject, time.Now(), meta, fmt.Sprintf("%x", rb)}
 }
 
 type Mutation struct {
+	Kind      Type
 	Created   time.Time
 	ObjectRef string
 	Property  string
 	Op        Operation
 	Value     string
+}
+
+func SetProp(objRef string, prop, val string) *Mutation {
+	return &Mutation{Tmutation, time.Now(), objRef, prop, PropSet, val}
+}
+
+func DelProp(objRef string, prop string) *Mutation {
+	return &Mutation{Tmutation, time.Now(), objRef, prop, PropDel, ""}
 }
 
 type mutSort []*Mutation
@@ -46,14 +63,6 @@ func (m mutSort) Less(i, j int) bool {
 }
 func (m mutSort) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
-}
-
-func SetProp(objRef string, prop, val string) *Mutation {
-	return &Mutation{time.Now(), objRef, prop, PropSet, val}
-}
-
-func DelProp(objRef string, prop string) *Mutation {
-	return &Mutation{time.Now(), objRef, prop, PropDel, ""}
 }
 
 func CurrProperties(muts []*Mutation) map[string]string {
