@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"sort"
 
 	"github.com/rwcarlsen/cas/blobdb"
 )
@@ -61,28 +62,15 @@ func (db *Dbase) Enumerate(after string, limit int) ([]string, error) {
 	}
 	defer f.Close()
 
-	remain := limit
-	refs := []string{}
-	for remain > 0 {
-		names, err := f.Readdirnames(32768)
-		if err == io.EOF {
-			return refs, nil
-		} else if err != nil {
-			return nil, err
-		}
-
-		if after != "" {
-			for i, name := range names {
-				if name >= after {
-					break
-				}
-				names = names[i:]
-			}
-		}
-
-		refs = append(refs, names...)
-		remain -= len(names)
+	names, err := f.Readdirnames(-1)
+	if err != nil {
+		return nil, err
 	}
 
-	return refs, nil
+	sort.Strings(names)
+	if after != "" {
+		i := sort.SearchStrings(names, after)
+		names = append([]string{}, names[i+1:]...)
+	}
+	return names, nil
 }

@@ -69,7 +69,7 @@ func PutReader(db blobdb.Interface, path string, r io.Reader) (*Info, error) {
 	return fi, nil
 }
 
-func Get(db blobdb.Interface, metaref string) (data []byte, f *Info, err error) {
+func GetData(db blobdb.Interface, metaref string) (data []byte, f *Info, err error) {
 	data, err = blobdb.GetData(db, metaref)
 	if err != nil {
 		return nil, nil, err

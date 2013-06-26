@@ -17,7 +17,7 @@ func TestPutGet(t *testing.T) {
 
 	data := []byte("hello my friends")
 
-	ref, err := db.Put(bytes.NewBuffer(data))
+	ref, _, err := db.Put(bytes.NewBuffer(data))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func TestEnumerate(t *testing.T) {
 	prefix := []byte("hello")
 	refs := []string{}
 	for i := 0; i < 10; i++ {
-		ref, err := db.Put(bytes.NewBuffer(append(prefix, byte(i))))
+		ref, _, err := db.Put(bytes.NewBuffer(append(prefix, byte(i))))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -57,12 +57,15 @@ func TestEnumerate(t *testing.T) {
 
 	sort.Strings(refs)
 
-	listed, err := db.Enumerate(refs[4], 10)
+	after := refs[4]
+	limit := 10
+	listed, err := db.Enumerate(after, limit)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if len(listed) != 5 {
-		t.Fatalf("len(listed)=%v, expected 5", len(listed))
+		t.Errorf("len(listed)=%v, expected 5", len(listed))
+		t.Fatalf("after=%v, listed=%+v", after, listed)
 	}
 }
