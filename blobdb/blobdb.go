@@ -5,6 +5,7 @@ import (
 	_ "crypto/sha256"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strings"
 )
 
@@ -27,8 +28,18 @@ func init() {
 
 type Interface interface {
 	Get(string) (io.ReadCloser, error)
-	Put(r io.Reader) (string, int, error)
+	Put(r io.Reader) (string, int64, error)
 	Enumerate(after string, limit int) []string
+}
+
+func GetData(db Interface, ref string) ([]byte, error) {
+	r, err := db.Get(ref)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	return ioutil.ReadAll(r)
 }
 
 func MakeBlobRef(r io.Reader) string {

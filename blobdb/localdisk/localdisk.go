@@ -32,7 +32,7 @@ func (db *Dbase) Get(ref string) (r io.ReadCloser, err error) {
 	return os.Open(p)
 }
 
-func (db *Dbase) Put(r io.Reader) (ref string, n int, err error) {
+func (db *Dbase) Put(r io.Reader) (ref string, n int64, err error) {
 	var buf1, buf2 bytes.Buffer
 	mw := io.MultiWriter(&buf1, &buf2)
 	if _, err := io.Copy(mw, r); err != nil {
@@ -47,7 +47,7 @@ func (db *Dbase) Put(r io.Reader) (ref string, n int, err error) {
 	}
 	defer f.Close()
 
-	n, err := io.Copy(f, &buf2)
+	n, err = io.Copy(f, &buf2)
 	if err != nil {
 		return "", 0, err
 	}

@@ -3,6 +3,7 @@ package schema
 import (
 	"crypto/rand"
 	"encoding/json"
+	"io"
 	"fmt"
 	"strings"
 	"time"
@@ -51,7 +52,7 @@ func NewMeta(objRef string) *Meta {
 	return &Meta{
 		Type:       Tmeta,
 		Created:    time.Now(),
-		ObjectRef:  objRef,
+		ObjRef:  objRef,
 		Props: map[string]interface{}{},
 	}
 }
@@ -70,7 +71,7 @@ func UnmarshalProp(data []byte, prop string, v interface{}) error {
 		return err
 	}
 
-	data, err = json.Marshal(meta.Props[prop])
+	data, err := json.Marshal(meta.Props[prop])
 	if err != nil {
 		return err
 	}
@@ -82,7 +83,7 @@ func addField(field, val string, data []byte) []byte {
 	s := string(data)
 	trimmed := strings.TrimSpace(s)
 	if len(trimmed) == 0 || trimmed[len(trimmed)-1] != '}' {
-		panic("blob: json blob marshaling is broken")
+		panic("schema: json blob marshaling is broken")
 	}
 	trimmed = trimmed[:len(trimmed)-1]
 	trimmed = strings.TrimSpace(trimmed)
