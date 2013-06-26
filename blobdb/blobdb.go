@@ -1,6 +1,7 @@
 package blobdb
 
 import (
+	"bytes"
 	"crypto"
 	_ "crypto/sha256"
 	"fmt"
@@ -28,8 +29,34 @@ func init() {
 
 type Interface interface {
 	Get(string) (io.ReadCloser, error)
-	Put(r io.Reader) (string, int64, error)
+	Put(io.Reader) (string, int64, error)
 	Enumerate(after string, limit int) []string
+}
+
+type Filter interface {
+	Notify(data []byte)
+}
+
+type Index struct {
+	Interface
+	Filters []Filter
+}
+
+func (ind *Index) Put(r io.Reader) (string, int64, error) {
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return "", 0, err
+	}
+
+	ref, n, err := ind.Interface.Put(bytes.NewBuffer(data))
+
+	if err == nil {
+		for _, f := range ind.Filters {
+			f.Notify(data)
+		}
+	}
+
+	return ref, n, err
 }
 
 func GetData(db Interface, ref string) ([]byte, error) {
