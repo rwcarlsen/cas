@@ -1,13 +1,13 @@
 package schema
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/json"
-	"io"
 	"fmt"
+	"io"
 	"strings"
 	"time"
-	"bytes"
 )
 
 type Kind string
@@ -50,10 +50,10 @@ type Meta struct {
 
 func NewMeta(objRef string) *Meta {
 	return &Meta{
-		Type:       Tmeta,
-		Created:    time.Now(),
+		Type:    Tmeta,
+		Created: time.Now(),
 		ObjRef:  objRef,
-		Props: map[string]interface{}{},
+		Props:   map[string]interface{}{},
 	}
 }
 

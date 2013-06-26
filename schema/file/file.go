@@ -1,22 +1,22 @@
 package file
 
 import (
-	"os"
-	"io"
-	"time"
 	"bytes"
+	"io"
+	"os"
 	"path/filepath"
+	"time"
 
-	"github.com/rwcarlsen/cas/schema"
 	"github.com/rwcarlsen/cas/blobdb"
+	"github.com/rwcarlsen/cas/schema"
 )
 
 const Property = "file"
 
 type Info struct {
-	Created time.Time
-	Size int64
-	Path string
+	Created     time.Time
+	Size        int64
+	Path        string
 	ContentRefs []string
 }
 
@@ -48,9 +48,9 @@ func PutReader(db blobdb.Interface, path string, r io.Reader) (*Info, error) {
 	}
 
 	fi := &Info{
-		Created: time.Now(),
-		Size: n,
-		Path: filepath.ToSlash(abs),
+		Created:     time.Now(),
+		Size:        n,
+		Path:        filepath.ToSlash(abs),
 		ContentRefs: []string{ref},
 	}
 
@@ -90,6 +90,3 @@ func Get(db blobdb.Interface, metaref string) (data []byte, f *Info, err error) 
 	}
 	return content, fi, nil
 }
-
-
-
