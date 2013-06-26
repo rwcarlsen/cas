@@ -89,4 +89,3 @@ func (c *Client) SendBlob(blobs ...[]byte) error {
 
 	return nil
 }
-

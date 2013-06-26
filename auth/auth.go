@@ -27,7 +27,7 @@ import (
 var kBasicAuthPattern *regexp.Regexp = regexp.MustCompile(`^Basic ([a-zA-Z0-9\+/=]+)`)
 
 var (
-  mode = &UserPass{Username: "robert", Password: "password"}
+	mode = &UserPass{Username: "robert", Password: "password"}
 )
 
 func basicAuth(req *http.Request) (string, string, error) {
@@ -87,18 +87,18 @@ func RequireAuth(handler func(conn http.ResponseWriter, req *http.Request)) func
 }
 
 type AuthHandler interface {
-  http.Handler
-  Unauthorized(http.ResponseWriter, *http.Request)
+	http.Handler
+	Unauthorized(http.ResponseWriter, *http.Request)
 }
 
 type Handler struct {
-  AuthHandler
+	AuthHandler
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-  if mode.IsAuthorized(r) {
-    h.AuthHandler.ServeHTTP(w, r)
-  } else {
-    h.AuthHandler.Unauthorized(w, r)
-  }
+	if mode.IsAuthorized(r) {
+		h.AuthHandler.ServeHTTP(w, r)
+	} else {
+		h.AuthHandler.Unauthorized(w, r)
+	}
 }

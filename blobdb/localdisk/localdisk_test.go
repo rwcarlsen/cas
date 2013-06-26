@@ -1,11 +1,11 @@
 package localdisk
 
 import (
-	"testing"
-	"os"
 	"bytes"
 	"io/ioutil"
+	"os"
 	"sort"
+	"testing"
 )
 
 func TestPutGet(t *testing.T) {

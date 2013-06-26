@@ -1,9 +1,9 @@
 package index
 
 import (
-	"fmt"
-	"encoding/json"
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -26,7 +26,7 @@ func New(db blobdb.Interface, path string) (*Index, error) {
 
 	ind := &Index{
 		Interface: db,
-		sqldb:            sqldb,
+		sqldb:     sqldb,
 	}
 	ind.createTables()
 	return ind, nil
@@ -99,4 +99,3 @@ func (ind *Index) RecentFiles(limit int) (blobrefs []string, err error) {
 	}
 	return blobrefs, nil
 }
-
