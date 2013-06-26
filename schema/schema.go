@@ -4,90 +4,77 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
+	"bytes"
 )
 
-type Operation string
+type Kind string
 
 const (
-	PropSet Operation = "SetProperty"
-	PropDel           = "DelProperty"
-)
-
-type Type string
-
-const (
-	Tobject   Type = "object"
-	Tmutation      = "mutation"
+	Tobject Kind = "object"
+	Tmeta        = "meta"
 )
 
 type Object struct {
-	Kind    Type
+	Type    Kind
 	Created time.Time
-	Meta    string
-	Random  string
+	Notes   string
+	Rand    string
 }
 
-func NewObject(meta string) *Object {
+func NewObject(notes string) io.Reader {
 	rb := make([]byte, 32)
 	rand.Read(rb)
-	return &Object{Tobject, time.Now(), meta, fmt.Sprintf("%x", rb)}
-}
-
-type Mutation struct {
-	Kind      Type
-	Created   time.Time
-	ObjectRef string
-	Property  string
-	Op        Operation
-	Value     string
-}
-
-func SetProp(objRef string, prop, val string) *Mutation {
-	return &Mutation{Tmutation, time.Now(), objRef, prop, PropSet, val}
-}
-
-func DelProp(objRef string, prop string) *Mutation {
-	return &Mutation{Tmutation, time.Now(), objRef, prop, PropDel, ""}
-}
-
-type mutSort []*Mutation
-
-func (m mutSort) Len() int {
-	return len(m)
-}
-func (m mutSort) Less(i, j int) bool {
-	return m[j].Created.After(m[i].Created)
-}
-func (m mutSort) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
-}
-
-func CurrProperties(muts []*Mutation) map[string]string {
-	props := map[string]string{}
-	sort.Sort(mutSort(muts))
-	for _, m := range muts {
-		if m.Op == PropSet {
-			props[m.Property] = m.Value
-		} else if m.Op == PropDel {
-			delete(props, m.Property)
-		}
+	obj := &Object{
+		Type:    Tobject,
+		Created: time.Now(),
+		Notes:   notes,
+		Rand:    fmt.Sprintf("%x", rb),
 	}
-	return props
+
+	data, err := Marshal(obj)
+	if err != nil {
+		panic(err)
+	}
+	return bytes.NewBuffer(data)
+}
+
+type Meta struct {
+	Type    Kind
+	Created time.Time
+	ObjRef  string
+	Props   map[string]interface{}
+}
+
+func NewMeta(objRef string) *Meta {
+	return &Meta{
+		Type:       Tmeta,
+		Created:    time.Now(),
+		ObjectRef:  objRef,
+		Props: map[string]interface{}{},
+	}
 }
 
 func Marshal(v interface{}) ([]byte, error) {
-	data, err := json.MarshalIndent(v, "", "\t")
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
+	return json.MarshalIndent(v, "", "\t")
 }
 
 func Unmarshal(data []byte, v interface{}) error {
+	return json.Unmarshal(data, v)
+}
+
+func UnmarshalProp(data []byte, prop string, v interface{}) error {
+	meta := &Meta{}
+	if err := json.Unmarshal(data, meta); err != nil {
+		return err
+	}
+
+	data, err = json.Marshal(meta.Props[prop])
+	if err != nil {
+		return err
+	}
+
 	return json.Unmarshal(data, v)
 }
 

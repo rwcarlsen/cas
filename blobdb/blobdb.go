@@ -27,7 +27,7 @@ func init() {
 
 type Interface interface {
 	Get(string) (io.ReadCloser, error)
-	Put(r io.Reader) (string, error)
+	Put(r io.Reader) (string, int, error)
 	Enumerate(after string, limit int) []string
 }
 
