@@ -32,7 +32,7 @@ type Interface interface {
 	Enumerate(after string, limit int) []string
 }
 
-func GetData(db Interface, ref string) ([]byte, error) {
+func GetBytes(db Interface, ref string) ([]byte, error) {
 	r, err := db.Get(ref)
 	if err != nil {
 		return nil, err

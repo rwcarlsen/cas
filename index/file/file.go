@@ -43,3 +43,14 @@ func (s *Store) PutReader(path string, r io.Reader) (blobref string, err error) 
 
 	return ref, nil
 }
+
+func (s *Store) GetBytes(path string) (data []byte, err error) {
+	refs, err := s.Index.FindExact(Path, path, 1)
+	if err != nil {
+		return nil, err
+	} else if len(refs) != 1 {
+		return nil, fmt.Errorf("file: path %v not found in index")
+	}
+
+	return blobdb.GetBytes(s.Db, refs[0])
+}
