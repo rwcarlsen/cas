@@ -14,80 +14,40 @@ import (
 )
 
 type Index struct {
-	blobdb.Interface
 	sqldb *sqlite3.Conn
 }
 
-func New(db blobdb.Interface, path string) (*Index, error) {
+func New(path string) (*Index, error) {
 	sqldb, err := sqlite3.Open(path)
 	if err != nil {
 		return nil, err
 	}
 
 	ind := &Index{
-		Interface: db,
 		sqldb:     sqldb,
 	}
 	ind.createTables()
 	return ind, nil
 }
 
-func (ind *Index) Put(r io.Reader) (ref string, n int64, err error) {
-	data, err := ioutil.ReadAll(r)
-	if err != nil {
-		return "", 0, err
-	}
-
-	ref, n, err = ind.Interface.Put(bytes.NewBuffer(data))
-	ind.index(ref, data)
-
-	return ref, n, err
+func (ind *Index) Set(ref, key, val string) error {
+	sql := "INSERT INTO blobindex (blobref, timestamp, key, value) VALUES (?, ?, ?, ?)"
+	return ind.sqldb.Exec(sql, ref, time.Now(), key, val); err != nil {
 }
 
 func (ind *Index) createTables() {
-	tblCols := "blobref TEXT, timecreated INTEGER, objref TEXT"
-	cmd := fmt.Sprintf("CREATE TABLE IF NOT EXISTS tblName (%s)", tblCols)
+	tblCols := "blobref TEXT, timestamp INTEGER, key TEXT, value TEXT"
+	cmd := fmt.Sprintf("CREATE TABLE IF NOT EXISTS blobindex (%s)", tblCols)
 	err := ind.sqldb.Exec(cmd)
 	if err != nil {
 		panic(err)
 	}
-
-	tblCols = "blobref TEXT, timecreated INTEGER, size INTEGER, path TEXT"
-	cmd = fmt.Sprintf("CREATE TABLE IF NOT EXISTS fileinfo (%s)", tblCols)
-	err = ind.sqldb.Exec(cmd)
-	if err != nil {
-		panic(err)
-	}
 }
 
-func (ind *Index) index(ref string, data []byte) {
-	m := &schema.Meta{}
-	if err := json.Unmarshal(data, m); err != nil {
-		return
-	}
-
-	err := ind.sqldb.Exec("INSERT INTO metablobs (blobref, timecreated, objref) VALUES (?, ?, ?)", ref, m.Created, m.ObjRef)
+func (ind *Index) query(sql string) (blobrefs []string, err error) {
+	s, err := ind.sqldb.Query(sql)
 	if err != nil {
-		panic(err)
-	}
-
-	fi := &file.Info{}
-	if err := schema.UnmarshalProp(data, file.Property, fi); err == nil {
-		ind.indexFile(ref, fi)
-	}
-}
-
-func (ind *Index) indexFile(ref string, fi *file.Info) {
-	err := ind.sqldb.Exec("INSERT INTO fileinfo (blobref, timecreated, size, path) VALUES (?, ?, ?, ?)", ref, fi.Created, fi.Size, fi.Path)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (ind *Index) RecentFiles(limit int) (blobrefs []string, err error) {
-	s, err := ind.sqldb.Query("SELECT blobref FROM fileinfo ORDER BY timecreated DESC LIMIT ?", limit)
-	if err != nil {
-		return nil, error
+		return nil, err
 	}
 
 	for err := nil; err == nil; err = s.Next() {
@@ -98,4 +58,37 @@ func (ind *Index) RecentFiles(limit int) (blobrefs []string, err error) {
 		blobrefs = append(blobrefs, ref)
 	}
 	return blobrefs, nil
+}
+
+func (ind *Index) FindExact(key, val string, limit int) (blobrefs []string, err error) {
+	sql := fmt.Sprintf("SELECT blobref FROM blobindex WHERE key=%s AND value=%s LIMIT %v", key, val, limit)
+	return ind.query(sql)
+}
+
+func (ind *Index) Find(key, valpattern string, limit int) (blobrefs []string, err error) {
+	sql := fmt.Sprintf("SELECT blobref FROM blobindex WHERE key=%s AND value LIKE %s LIMIT %v", key, val, limit)
+	return ind.query(sql)
+}
+
+type Entry struct {
+	Timestamp time.Time
+	Key string
+	Value string
+}
+
+func (ind *Index) Info(blobref string, limit int) ([]*Entry, error) {
+	sql := "SELECT timestamp, key, value FROM blobindex WHERE blobref=? ORDERED BY timestamp DESC LIMIT ?"
+	if err := ind.sqldb.Exec(sql, blobref, limit); err != nil {
+		return nil, err
+	}
+
+	ents := make([]*Entry, 0)
+	for err := nil; err == nil; err = s.Next() {
+		ent := &Entry{}
+		if err := s.Scan(&ent.Timestamp, &ent.Key, &ent.Value); err != nil {
+			return nil, err
+		}
+		ents = append(ents, ent)
+	}
+	return ents, nil
 }
