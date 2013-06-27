@@ -11,13 +11,18 @@ import (
 	"github.com/rwcarlsen/cas/index"
 )
 
-// file meta-data attributes
+// file meta-data attribute keys
 const (
 	Size = "file-size"
 	Path = "file-path"
 )
 
-func PutPath(db blobdb.Interface, i *index.Index, path string) (ref string, err error) {
+type Store struct {
+	Db    blobdb.Interface
+	Index *index.Index
+}
+
+func (s *Store) PutPath(path string) (blobref string, err error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -28,13 +33,14 @@ func PutPath(db blobdb.Interface, i *index.Index, path string) (ref string, err 
 	return PutReader(db, i, filepath.ToSlash(abs), f)
 }
 
-func PutReader(db blobdb.Interface, i *index.Index, path string, r io.Reader) (ref string, err error) {
-	ref, n, err := db.Put(r)
+func (s *Store) PutReader(path string, r io.Reader) (blobref string, err error) {
+	ref, n, err := s.Db.Put(r)
 	if err != nil {
 		return "", err
 	}
 
-	i.Set(blobref, Size, fmt.Sprint(n))
-	i.Set(blobref, Path, path)
+	s.Index.Set(blobref, Size, fmt.Sprint(n))
+	s.Index.Set(blobref, Path, path)
+
 	return ref, nil
 }
