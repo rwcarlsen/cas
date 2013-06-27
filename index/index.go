@@ -1,16 +1,10 @@
 package index
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
+	"time"
 
 	"code.google.com/p/go-sqlite/go1/sqlite3"
-	"github.com/rwcarlsen/cas/blobdb"
-	"github.com/rwcarlsen/cas/schema"
-	"github.com/rwcarlsen/cas/schema/file"
 )
 
 type Index struct {
@@ -24,7 +18,7 @@ func New(path string) (*Index, error) {
 	}
 
 	ind := &Index{
-		sqldb:     sqldb,
+		sqldb: sqldb,
 	}
 	ind.createTables()
 	return ind, nil
@@ -32,7 +26,7 @@ func New(path string) (*Index, error) {
 
 func (ind *Index) Set(ref, key, val string) error {
 	sql := "INSERT INTO blobindex (blobref, timestamp, key, value) VALUES (?, ?, ?, ?)"
-	return ind.sqldb.Exec(sql, ref, time.Now(), key, val); err != nil {
+	return ind.sqldb.Exec(sql, ref, time.Now(), key, val)
 }
 
 func (ind *Index) createTables() {
@@ -50,7 +44,7 @@ func (ind *Index) query(sql string) (blobrefs []string, err error) {
 		return nil, err
 	}
 
-	for err := nil; err == nil; err = s.Next() {
+	for err = nil; err == nil; err = s.Next() {
 		ref := ""
 		if err := s.Scan(&ref); err != nil {
 			return nil, err
@@ -61,29 +55,32 @@ func (ind *Index) query(sql string) (blobrefs []string, err error) {
 }
 
 func (ind *Index) FindExact(key, val string, limit int) (blobrefs []string, err error) {
-	sql := fmt.Sprintf("SELECT blobref FROM blobindex WHERE key=%s AND value=%s LIMIT %v", key, val, limit)
+	sql := fmt.Sprintf("SELECT blobref FROM blobindex WHERE key=%s AND value=%s LIMIT %v",
+		key, val, limit)
 	return ind.query(sql)
 }
 
 func (ind *Index) Find(key, valpattern string, limit int) (blobrefs []string, err error) {
-	sql := fmt.Sprintf("SELECT blobref FROM blobindex WHERE key=%s AND value LIKE %s LIMIT %v", key, val, limit)
+	sql := fmt.Sprintf("SELECT blobref FROM blobindex WHERE key=%s AND value LIKE %s LIMIT %v",
+		key, valpattern, limit)
 	return ind.query(sql)
 }
 
 type Entry struct {
 	Timestamp time.Time
-	Key string
-	Value string
+	Key       string
+	Value     string
 }
 
 func (ind *Index) Info(blobref string, limit int) ([]*Entry, error) {
 	sql := "SELECT timestamp, key, value FROM blobindex WHERE blobref=? ORDERED BY timestamp DESC LIMIT ?"
-	if err := ind.sqldb.Exec(sql, blobref, limit); err != nil {
+	s, err := ind.sqldb.Query(sql, blobref, limit)
+	if err != nil {
 		return nil, err
 	}
 
 	ents := make([]*Entry, 0)
-	for err := nil; err == nil; err = s.Next() {
+	for err = nil; err == nil; err = s.Next() {
 		ent := &Entry{}
 		if err := s.Scan(&ent.Timestamp, &ent.Key, &ent.Value); err != nil {
 			return nil, err

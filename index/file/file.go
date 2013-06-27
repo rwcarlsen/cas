@@ -1,11 +1,10 @@
 package file
 
 import (
-	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/rwcarlsen/cas/blobdb"
 	"github.com/rwcarlsen/cas/index"
@@ -25,12 +24,12 @@ type Store struct {
 func (s *Store) PutPath(path string) (blobref string, err error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer f.Close()
 
 	abs, err := filepath.Abs(path)
-	return PutReader(db, i, filepath.ToSlash(abs), f)
+	return s.PutReader(filepath.ToSlash(abs), f)
 }
 
 func (s *Store) PutReader(path string, r io.Reader) (blobref string, err error) {
