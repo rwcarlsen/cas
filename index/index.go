@@ -7,6 +7,7 @@ import (
 	"code.google.com/p/go-sqlite/go1/sqlite3"
 )
 
+// A key-value index for a blob database.
 type Index struct {
 	sqldb *sqlite3.Conn
 }
@@ -24,6 +25,8 @@ func New(path string) (*Index, error) {
 	return ind, nil
 }
 
+// Set creates a key-value meta-data entry in the index for the blob specified
+// by ref.  Entry changes are timestamped and never overwritten.
 func (ind *Index) Set(ref, key, val string) error {
 	sql := "INSERT INTO blobindex (blobref, timestamp, key, value) VALUES (?, ?, ?, ?)"
 	return ind.sqldb.Exec(sql, ref, time.Now(), key, val)
@@ -54,14 +57,18 @@ func (ind *Index) query(sql string) (blobrefs []string, err error) {
 	return blobrefs, nil
 }
 
+// FindExact returns a list of all blobrefs that have the key-value pair with
+// values exactly as specified.  Returns at most the newest limit blobrefs.
 func (ind *Index) FindExact(key, val string, limit int) (blobrefs []string, err error) {
-	sql := fmt.Sprintf("SELECT blobref FROM blobindex WHERE key=%s AND value=%s LIMIT %v",
+	sql := fmt.Sprintf("SELECT DISTINCT blobref FROM blobindex WHERE key=%s AND value=%s LIMIT %v ORDER BY timestamp DESC",
 		key, val, limit)
 	return ind.query(sql)
 }
 
+// Find returns a list of all blobrefs that have the specified key with a value
+// matching valpattern.  Returns at most the newest limit blobrefs
 func (ind *Index) Find(key, valpattern string, limit int) (blobrefs []string, err error) {
-	sql := fmt.Sprintf("SELECT blobref FROM blobindex WHERE key=%s AND value LIKE %s LIMIT %v",
+	sql := fmt.Sprintf("SELECT DISTINCT blobref FROM blobindex WHERE key=%s AND value LIKE %s LIMIT %v ORDER BY timestamp DESC",
 		key, valpattern, limit)
 	return ind.query(sql)
 }
@@ -72,6 +79,8 @@ type Entry struct {
 	Value     string
 }
 
+// Info returns all meta-data entries from the index for the specified blobref
+// up to the limit newest entries.
 func (ind *Index) Info(blobref string, limit int) ([]*Entry, error) {
 	sql := "SELECT timestamp, key, value FROM blobindex WHERE blobref=? ORDERED BY timestamp DESC LIMIT ?"
 	s, err := ind.sqldb.Query(sql, blobref, limit)

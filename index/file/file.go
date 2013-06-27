@@ -21,6 +21,8 @@ type Store struct {
 	Index *index.Index
 }
 
+// PutPath calls PutReader with the file at the specified path as the
+// io.Reader.
 func (s *Store) PutPath(path string) (blobref string, err error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -32,6 +34,9 @@ func (s *Store) PutPath(path string) (blobref string, err error) {
 	return s.PutReader(filepath.ToSlash(abs), f)
 }
 
+// PutReader creates dumps the data from r as a blob into the store
+// database and adds file-based meta-data attributes to the index.
+// path is the value of the file.Path attribute
 func (s *Store) PutReader(path string, r io.Reader) (blobref string, err error) {
 	ref, n, err := s.Db.Put(r)
 	if err != nil {
@@ -44,7 +49,10 @@ func (s *Store) PutReader(path string, r io.Reader) (blobref string, err error) 
 	return ref, nil
 }
 
-func (s *Store) GetBytes(path string) (data []byte, err error) {
+// GetBytes returns the most recent blobref+data that has ever had the
+// specified path.  The blobref and data returned may no longer have the
+// same path.
+func (s *Store) GetBytes(path string) (blobref string, data []byte, err error) {
 	refs, err := s.Index.FindExact(Path, path, 1)
 	if err != nil {
 		return nil, err
