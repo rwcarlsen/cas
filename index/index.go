@@ -73,6 +73,36 @@ func (ind *Index) Find(key, valpattern string, limit int) (blobrefs []string, er
 	return ind.query(sql)
 }
 
+// FindExactCurr returns a list of all blobrefs that have the key-value pair
+// with values exactly as specified for the most recent value of key.  Returns
+// at most the newest limit blobrefs.
+func (ind *Index) FindExactCurr(key, val string, limit int) (blobrefs []string, err error) {
+	s := `
+		SELECT DISTINCT blobref FROM blobindex a WHERE
+			key=%s AND value=%s AND timestamp = (
+				SELECT MAX(timestamp) FROM blobindex b
+				WHERE b.key=%s AND b.value=%s AND a.blobref=b.blobref
+			)
+		LIMIT %v ORDER BY timestamp DESC`
+	sql := fmt.Sprintf(s, key, val, key, val, limit)
+	return ind.query(sql)
+}
+
+// FindCurr returns a list of all blobrefs that have the specified key with a
+// value matching valpattern for the most recent value of key.  Returns at most
+// the newest limit blobrefs
+func (ind *Index) FindCurr(key, valpattern string, limit int) (blobrefs []string, err error) {
+	s := `
+		SELECT DISTINCT blobref FROM blobindex a WHERE
+			key=%s AND value LIKE %s AND timestamp = (
+				SELECT MAX(timestamp) FROM blobindex b
+				WHERE b.key=%s AND b.value LIKE %s AND a.blobref=b.blobref
+			)
+		LIMIT %v ORDER BY timestamp DESC`
+	sql := fmt.Sprintf(s, key, valpattern, key, valpattern, limit)
+	return ind.query(sql)
+}
+
 type Entry struct {
 	Timestamp time.Time
 	Key       string
