@@ -16,6 +16,10 @@ var (
 	HashCollideErr = errors.New("blobdb: blob hash collision")
 )
 
+func init() {
+	blobdb.Register("localdisk", creator)
+}
+
 type Dbase struct {
 	location string
 }
@@ -73,4 +77,12 @@ func (db *Dbase) Enumerate(after string, limit int) ([]string, error) {
 		names = append([]string{}, names[i+1:]...)
 	}
 	return names, nil
+}
+
+func creator(params blobdb.Params) (blobdb.Interface, error) {
+	root, ok := params["Root"]
+	if !ok {
+		return nil, errors.New("localdisk: missing 'Root' from Params")
+	}
+	return &Dbase{root}, nil
 }

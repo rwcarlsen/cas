@@ -29,7 +29,7 @@ func init() {
 type Interface interface {
 	Get(string) (io.ReadCloser, error)
 	Put(io.Reader) (string, int64, error)
-	Enumerate(after string, limit int) []string
+	Enumerate(after string, limit int) ([]string, error)
 }
 
 func GetBytes(db Interface, ref string) ([]byte, error) {
