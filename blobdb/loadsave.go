@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 )
+
+var DefaultSpecsPath = filepath.Join(os.Getenv("HOME"), ".blobdbs")
 
 // Params is used to hold/specify details required for the initialization
 // of standard and custom blobdb's.

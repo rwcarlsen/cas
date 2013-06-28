@@ -11,11 +11,6 @@ import (
 	"github.com/rwcarlsen/cas/blobdb"
 )
 
-var (
-	DupContentErr  = errors.New("blobdb: blob hash-content combo already exist")
-	HashCollideErr = errors.New("blobdb: blob hash collision")
-)
-
 func init() {
 	blobdb.Register("localdisk", creator)
 }
@@ -48,13 +43,13 @@ func (db *Dbase) Put(r io.Reader) (ref string, n int64, err error) {
 	p := path.Join(db.location, ref)
 	f, err := os.Create(p)
 	if err != nil {
-		return "", 0, err
+		return ref, 0, err
 	}
 	defer f.Close()
 
 	n, err = io.Copy(f, &buf2)
 	if err != nil {
-		return "", 0, err
+		return ref, 0, err
 	}
 	return ref, n, nil
 }

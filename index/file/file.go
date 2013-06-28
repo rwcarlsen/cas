@@ -23,10 +23,10 @@ type Store struct {
 
 // PutPath calls PutReader with the file at the specified path as the
 // io.Reader.
-func (s *Store) PutPath(path string) (blobref string, err error) {
+func (s *Store) PutPath(path string) (blobref string, n int64, err error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	defer f.Close()
 
@@ -37,28 +37,33 @@ func (s *Store) PutPath(path string) (blobref string, err error) {
 // PutReader creates dumps the data from r as a blob into the store
 // database and adds file-based meta-data attributes to the index.
 // path is the value of the file.Path attribute
-func (s *Store) PutReader(path string, r io.Reader) (blobref string, err error) {
-	ref, n, err := s.Db.Put(r)
-	if err != nil {
-		return "", err
+func (s *Store) PutReader(path string, r io.Reader) (blobref string, n int64, err error) {
+	blobref, n, err = s.Db.Put(r)
+	if err != nil && blobref == "" {
+		return "", n, err
 	}
 
-	s.Index.Set(blobref, Size, fmt.Sprint(n))
-	s.Index.Set(blobref, Path, path)
+	if err := s.Index.Set(blobref, Size, fmt.Sprint(n)); err != nil {
+		return blobref, n, err
+	}
+	if err := s.Index.Set(blobref, Path, path); err != nil {
+		return blobref, n, err
+	}
 
-	return ref, nil
+	return blobref, n, nil
 }
 
-// GetBytes returns the most recent blobref+data that has ever had the
+// GetPath returns the most recent blobref+data that has ever had the
 // specified path.  The blobref and data returned may no longer have the
 // same path.
-func (s *Store) GetBytes(path string) (blobref string, data []byte, err error) {
+func (s *Store) GetPath(path string) (blobref string, data []byte, err error) {
 	refs, err := s.Index.FindExact(Path, path, 1)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	} else if len(refs) != 1 {
-		return nil, fmt.Errorf("file: path %v not found in index")
+		return "", nil, fmt.Errorf("file: path %v not found in index")
 	}
 
-	return blobdb.GetBytes(s.Db, refs[0])
+	data, err = blobdb.GetBytes(s.Db, refs[0])
+	return refs[0], data, err
 }

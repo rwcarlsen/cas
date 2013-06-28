@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/rwcarlsen/cas/index"
 	"github.com/rwcarlsen/cas/index/file"
@@ -29,10 +27,7 @@ func main() {
 		lg.Fatalf("Failed to access index %v", *ind)
 	}
 
-	*prefix += "%"
-	if !path.IsAbs(*prefix) {
-		*prefix = "%" + *prefix
-	}
+	*prefix = "%" + *prefix + "%"
 
 	var refs []string
 	if *showOld {
